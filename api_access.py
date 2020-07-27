@@ -1,0 +1,180 @@
+import socket, ssl, time
+from tqdm import trange
+from datetime import datetime
+from data_processing import *
+
+
+
+####            QuerySets are named lists of queries (static requests each associated to a name)           ####
+class QuerySet:
+
+    def __init__(self, name):
+        self.name = name
+        self.queries = []
+
+    def getUserData(self):
+        self.queries.append({'name': f'{self.name}_UserData',
+                              'request': getUserDataRequest})
+        logger.debug('getUserData :' + Fore.BLUE + f'{self.queries[-1]}')
+        logger.info(Fore.GREEN + f"added {self.queries[-1]} to the list of {self.name} queries")
+
+    def getMarginLevel(self):
+        self.queries.append({'name': f'{self.name}_MarginLevel',
+                             'request': getMarginLevelRequest})
+        logger.debug('getMarginLevel :' + Fore.BLUE + f'{self.queries[-1]}')
+        logger.info(Fore.GREEN + f"added {self.queries[-1]} to the list of {self.name} queries")
+
+    def getMarginTrade(self, *args):
+        for query in args:
+            self.queries.append({'name': f'{self.name}_MarginTrade_{query[0]}_{query[1]}',
+                                'request': {'command': 'getMarginTrade',
+                                            'arguments': {'symbol': query[0],
+                                                          'volume': query[1]}
+                                        }
+                                 })
+            logger.debug('getMarginTrade :' + Fore.BLUE + f'{self.queries[-1]}')
+            logger.info(Fore.GREEN + f"added {self.queries[-1]} to the list of {self.name} queries")
+
+    def getCommissionDef(self, *args):
+        #   args:liste of tuples ('str', int)
+        #   Will register a query in the queryset for each tuple
+        for query in args:
+            self.queries.append({'name': f'{self.name}_Commission_{query[0]}_{query[1]}',
+                                'request': {'command': 'getCommissionDef',
+                                            'arguments': {'symbol': query[0],
+                                                          'volume': query[1]}
+                                        }
+                                 })
+            logger.debug('getCommissionDef :' + Fore.BLUE + f'{self.queries[-1]}')
+            logger.info(Fore.GREEN + f"added {self.queries[-1]} to the list of {self.name} queries")
+
+    def getAllSymbols(self):
+        self.queries.append({'name': f'{self.name}_AllSymbols',
+                              'request': getAllSymbolsRequest})
+        logger.debug('getAllSymbols :' + Fore.BLUE + f'{self.queries[-1]}')
+        logger.info(Fore.GREEN + f"added {self.queries[-1]} to the list of {self.name} queries")
+
+    def getCalendar(self):
+        self.queries.append({'name': f'{self.name}_Calendar',
+                              'request': getCalendarRequest})
+        logger.debug('getCalendar :' + Fore.BLUE + f'{self.queries[-1]}')
+        logger.info(Fore.GREEN + f"added {self.queries[-1]} to the list of {self.name} queries")
+
+    def getChartRange(self, name, symbols, period, start, end):
+        #   args : (str, list of str, int, str(datetime), str(datetime))
+        #   Will register a query in the queryset for each symbol of the list.
+        try:
+            start = datetime.strptime(start, "%Y-%m-%d %H:%M:%S")
+            end = datetime.strptime(end, "%Y-%m-%d %H:%M:%S")
+            start_ts = datetime.timestamp(start)
+            end_ts = datetime.timestamp(end)
+            logger.debug(Fore.BLUE + f'start_ts = {start_ts} -- end_ts = {end_ts}')
+            for symbol in symbols:
+                request = {'command': 'getChartRangeRequest',
+                            'arguments': {'info': {'start': 1000 * round(start_ts),
+                                                   'period': period,
+                                                   'end': 1000 * round(end_ts),
+                                                   'symbol': symbol}
+                                    }
+                        }
+                self.queries.append({'name': f'{self.name}_{name}_ChartRange_{symbol}',
+                                  'request': request})
+                logger.debug('getChartRange :' + Fore.BLUE + f'{self.queries[-1]}')
+                logger.info(Fore.GREEN + f"added {self.queries[-1]} to the list of {self.name} queries")
+        except:
+            logger.exception()
+
+
+####        All communications with the XTB json API happen through an AccessAPI instance         ####
+class AccessAPI:
+
+    requests = []
+    key = ''
+    datas = {}
+
+    def __init__(self):
+        add = socket.getaddrinfo(SERVER, STREAM_PORT)[0][4][0]
+        self.stream_s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.stream_s.connect((add, STREAM_PORT))
+        self.stream_s = ssl.wrap_socket(self.stream_s)
+        s_add = socket.getaddrinfo(SERVER, STATIC_PORT)[0][4][0]
+        self.static_s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.static_s.connect((s_add, STATIC_PORT))
+        self.static_s = ssl.wrap_socket(self.static_s)
+        try:
+            self.static_s.send(ujson.dumps(loginRequest).encode(FORMAT))
+            status = self.static_s.recv().decode(FORMAT)
+            status = ujson.loads(status)
+            self.key = status['streamSessionId']
+            logger.info(Fore.GREEN + 'LOGIN : {} \n'.format(status))
+        except:
+            logger.exception(Fore.RED + status['errorDescr'].upper())
+
+
+    def staticDataRequest(self, *args):  #  feed with QuerySets
+        try:
+            for queryset in args:
+                for query in queryset.queries:
+                    request = query['request']
+                    name = query['name']
+                    time.sleep(0.2)
+                    logger.debug('staticDataRequest :'\
+                            + Fore.BLUE + f'request {name} = {request}')
+                    for _ in trange(len(args), bar_format="{l_bar}%s{bar}%s{r_bar}" % (Fore.GREEN, Fore.WHITE),
+                                    desc=Fore.BLUE + f"Downloading {request}"):
+                        self.static_s.send(ujson.dumps(request).encode(FORMAT))
+
+                        data = self.static_s.recv().decode(FORMAT)
+                        self.datas[name] = '' + data
+                        while '\n\n' not in data:
+                            data = self.static_s.recv().decode(FORMAT)
+                            self.datas[name] = self.datas[name] + data
+                        self.datas[name] = ujson.loads(self.datas[name])
+                    if self.datas[name]['status'] is False:
+                        logger.info(Fore.RED + f"{name.upper()} : {self.datas[name]['status']}")
+                        try:
+                            logger.error('staticDataRequest :'\
+                                         + Fore.RED + self.datas[name]['errorDescr']\
+                                         + '\n')
+                        except:
+                            logger.exception(Fore.RED + 'Error not listed on API documentation')
+                    else:
+                        logger.info(Fore.GREEN + f"{name.upper()} : {self.datas[name]['status']}")
+
+        except NameError:
+            logger.exception(Fore.RED + 'invalid argument' + '\n')
+
+
+
+
+if __name__ == '__main__':
+
+    #TODO#         Uncomment and modify with your values for a quick first use
+
+
+    # #!#Creating a QuerySet
+    # req = QuerySet('first_query')
+    #
+    # #!# Adding queries to the QuerySet
+    # symbols = ["EURUSD",
+    #            'OIL.WTI',
+    #            'GBPUSD'
+    #            ]
+    # req.getChartRange('hist_datas', symbols, 240, '2020-06-10 09:00:00',
+    #                                                  '2020-07-24 19:00:00')
+    # req.getChartRange('short_datas', symbols, 5, '2020-07-18 09:00:00',
+    #                                                  '2020-07-24 19:00:00')
+    #
+    # req.getMarginTrade(*[('EURUSD', 1), ('GBPUSD', 1)])
+    # req.getUserData()
+    # logger.debug('Main :' + Fore.BLUE + f'requests = {[query for query in req.queries]}')
+    #
+    # #!# Create an AccessAPI instance to access XTB JSON API
+    # session = AccessAPI()
+    # session.staticDataRequest(req)
+    # logger.debug('Main :' + Fore.BLUE + f'datas = {session.datas}')
+    #
+    # #!# Process collected datas
+    # datasets = api_to_dataset(session.datas)
+    # logger.debug('Main :' + Fore.BLUE + f'{datasets[0]}')
+    pass
