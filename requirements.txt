@@ -3,3 +3,4 @@ tqdm
 ujson
 pytest
 pandas
+sqlite3
