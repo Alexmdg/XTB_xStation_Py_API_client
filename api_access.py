@@ -224,6 +224,7 @@ if __name__ == '__main__':
     # logger.debug('Main :' + Fore.BLUE + f'requests = {[query for query in req.queries]}')
     #
     #
+    # #!# Pass the QuerySet to the API
     # session.staticDataRequest(req)
     # logger.debug('Main :' + Fore.BLUE + f'datas = {session.datas}')
     #
