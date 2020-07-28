@@ -1,4 +1,4 @@
-import socket, ssl, time
+import socket, ssl, time, threading
 from tqdm import trange
 from datetime import datetime
 from data_processing import *
@@ -87,16 +87,15 @@ class QuerySet:
 
 ####        All communications with the XTB json API happen through an AccessAPI instance         ####
 class AccessAPI:
-
     requests = []
     key = ''
     datas = {}
+    stream_socket_list = {}
+    is_socket_open = {}
+    thread_list = {}
+
 
     def __init__(self):
-        add = socket.getaddrinfo(SERVER, STREAM_PORT)[0][4][0]
-        self.stream_s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.stream_s.connect((add, STREAM_PORT))
-        self.stream_s = ssl.wrap_socket(self.stream_s)
         s_add = socket.getaddrinfo(SERVER, STATIC_PORT)[0][4][0]
         self.static_s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.static_s.connect((s_add, STATIC_PORT))
@@ -145,17 +144,72 @@ class AccessAPI:
             logger.exception(Fore.RED + 'invalid argument' + '\n')
 
 
+    def streamSocketInit(self, *socket_names):
+        for name in socket_names:
+            add = socket.getaddrinfo(SERVER, STREAM_PORT)[0][4][0]
+            self.stream_socket_list[name] = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.stream_socket_list[name].connect((add, STREAM_PORT))
+            self.stream_socket_list[name] = ssl.wrap_socket(self.stream_socket_list[name])
+            self.stream_socket_list[name].settimeout(5)
+            self.is_socket_open[name] = True
+        logger.debug('streamSocketInit(): ' + Fore.BLUE + f'{self.stream_socket_list}, {self.is_socket_open}')
+
+
+    def streamTickPrices(self, socket_name, thread_name, symbol):
+        try:
+            self.thread_list[thread_name] = threading.Thread(target=self.streamListen, args=[socket_name])
+            self.thread_list[thread_name].start()
+        except:
+            logger.exception('streamTickPrices(): ' + Fore.RED + f'Exception while trying to open thread')
+        try:
+            request = {"command": "getTickPrices",
+                       "streamSessionId": self.key,
+                       "symbol": symbol,
+                       "minArrivalTime": 1500,
+                       "maxLevel": 2}
+            self.stream_socket_list[socket_name].send(ujson.dumps(request).encode(FORMAT))
+            logger.info(Fore.GREEN + f'Request {request} Sent')
+        except:
+            logger.exception('streamTickPrices(): ' + Fore.RED + 'Request not sent')
+
+
+    def streamListen(self, socket_name):
+        while self.is_socket_open[socket_name] is True:
+            try:
+                data = ''
+                datas = ''
+                while '\n\n' not in data:
+                    data = self.stream_socket_list[socket_name].recv().decode(FORMAT)
+                    datas = datas + data
+                    logger.debug('listen() :' + Fore.BLUE + f'First read : {data}')
+                    self.stream_datas = ujson.loads(datas)
+            except socket.timeout:
+                logger.exception('listen(): ' + Fore.RED + "Didn't receive any data for 5sec")
+            except:
+                logger.exception('listen(): ' + Fore.RED + "Couldn't listen")
+        time.sleep(0.2)
+
+
 
 
 if __name__ == '__main__':
 
+
     #TODO#         Uncomment and modify with your values for a quick first use
 
 
-    # #!#Creating a QuerySet
+
+    # #!# Create an AccessAPI instance to access XTB JSON API
+    # session = AccessAPI()
+    #
+    # #!# Create a stream of data
+    # session.streamSocketInit('eurusd')
+    # session.streamTickPrices('eurusd', 'eurusd', 'EURUSD')
+    #
+    # #!#Create a QuerySet
     # req = QuerySet('first_query')
     #
-    # #!# Adding queries to the QuerySet
+    # #!# Add queries to the QuerySet
     # symbols = ["EURUSD",
     #            'OIL.WTI',
     #            'GBPUSD'
@@ -169,12 +223,16 @@ if __name__ == '__main__':
     # req.getUserData()
     # logger.debug('Main :' + Fore.BLUE + f'requests = {[query for query in req.queries]}')
     #
-    # #!# Create an AccessAPI instance to access XTB JSON API
-    # session = AccessAPI()
+    #
     # session.staticDataRequest(req)
     # logger.debug('Main :' + Fore.BLUE + f'datas = {session.datas}')
     #
     # #!# Process collected datas
     # datasets = api_to_dataset(session.datas)
     # logger.debug('Main :' + Fore.BLUE + f'{datasets[0]}')
+    #
+    # time.sleep(2)
+    # session.is_socket_open['eurusd'] = False
+    # logger.debug('Main :' + Fore.BLUE + f'{session.stream_datas}')
+
     pass

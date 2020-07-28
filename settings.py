@@ -20,11 +20,11 @@ logger.addHandler(handler)
 
 ####            Unmutable Requests           ####
 
-getVersionRequest = {'command': 'getVersion'}
-loginRequest = {"command" : "login",
+loginRequest = {"command": "login",
                 "arguments": {"userId": USERID,
                               "password": PASSWORD}
                     }
+getVersionRequest = {'command': 'getVersion'}
 logoutRequest = {"command" : "logout"}
 getMarginLevelRequest = {"command": "getMarginLevel"}
 getAllSymbolsRequest = {"command": "getAllSymbols"}
