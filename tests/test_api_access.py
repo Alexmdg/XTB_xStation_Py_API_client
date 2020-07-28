@@ -1,17 +1,21 @@
-import pytest
+import os, sys, inspect
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(currentdir)
+sys.path.insert(0,parentdir)
+
 from api_access import *
 from settings import *
 
-class TestQuerySet:
 
+class TestQuerySet:
     qs = QuerySet('name')
+
     def test_queryset_init(self):
         errors = []
         if self.qs.name != 'name':
             errors.append('name')
         if type(self.qs.queries) != list:
             errors.append('list')
-
         assert len(errors) == 0
 
     def test_getUserData(self):
@@ -101,9 +105,9 @@ class TestQuerySet:
         errors = []
         args = ['hist', ['OIL.WTI', 'GBPUSD', 'EURUSD'], 60, '2020-06-10 09:00:00', '2020-07-24 19:00:00']
         request = {'command': 'getChartRangeRequest',
-                   'arguments': {'info': {'start': 1591772400.0,
+                   'arguments': {'info': {'start': 1591772400000,
                                           'period': 60,
-                                          'end': 1595610000.0,
+                                          'end': 1595610000000,
                                           'symbol': 'EURUSD'}
                                     }
                     }
@@ -121,4 +125,35 @@ class TestQuerySet:
 
 
     class TestAccessAPI:
+
+        session = AccessAPI()
+        qs = QuerySet('queryset')
+        symbols = ["EURUSD",
+                   'OIL.WTI',
+                   'GBPUSD'
+                   ]
+        qs.getChartRange('hist', symbols, 240, '2020-06-10 08:00:00',
+                                                         '2020-06-10 12:00:00')
+
+        qs.getMarginTrade(*[('EURUSD', 1), ('GBPUSD', 1)])
+        qs.getUserData()
+
+        def test_AccessAPI_init(self):
+            errors = []
+            if not self.session.static_s:
+                errors.append('static socket')
+            if type(self.session.key) != str or len(self.session.key) < 1:
+                errors.append('session key')
+            assert len(errors) == 0
+
+        def test_staticDataRequest(self):
+
+            errors = []
+            self.sessions.staticDataRequest(self.qs)
+            filelogger.debug(self.session.datas)
+            pass
+
+
+
+
         pass

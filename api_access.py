@@ -4,7 +4,6 @@ from datetime import datetime
 from data_processing import *
 
 
-
 ####            QuerySets are named lists of queries (static requests each associated to a name)           ####
 class QuerySet:
 
@@ -15,13 +14,13 @@ class QuerySet:
     def getUserData(self):
         self.queries.append({'name': f'{self.name}_UserData',
                               'request': getUserDataRequest})
-        logger.debug('getUserData :' + Fore.BLUE + f'{self.queries[-1]}')
+        logger.debug(Fore.BLUE + f'{self.queries[-1]}')
         logger.info(Fore.GREEN + f"added {self.queries[-1]} to the list of {self.name} queries")
 
     def getMarginLevel(self):
         self.queries.append({'name': f'{self.name}_MarginLevel',
                              'request': getMarginLevelRequest})
-        logger.debug('getMarginLevel :' + Fore.BLUE + f'{self.queries[-1]}')
+        logger.debug(Fore.BLUE + f'{self.queries[-1]}')
         logger.info(Fore.GREEN + f"added {self.queries[-1]} to the list of {self.name} queries")
 
     def getMarginTrade(self, *args):
@@ -32,7 +31,7 @@ class QuerySet:
                                                           'volume': query[1]}
                                         }
                                  })
-            logger.debug('getMarginTrade :' + Fore.BLUE + f'{self.queries[-1]}')
+            logger.debug(Fore.BLUE + f'{self.queries[-1]}')
             logger.info(Fore.GREEN + f"added {self.queries[-1]} to the list of {self.name} queries")
 
     def getCommissionDef(self, *args):
@@ -45,19 +44,19 @@ class QuerySet:
                                                           'volume': query[1]}
                                         }
                                  })
-            logger.debug('getCommissionDef :' + Fore.BLUE + f'{self.queries[-1]}')
+            logger.debug(Fore.BLUE + f'{self.queries[-1]}')
             logger.info(Fore.GREEN + f"added {self.queries[-1]} to the list of {self.name} queries")
 
     def getAllSymbols(self):
         self.queries.append({'name': f'{self.name}_AllSymbols',
                               'request': getAllSymbolsRequest})
-        logger.debug('getAllSymbols :' + Fore.BLUE + f'{self.queries[-1]}')
+        logger.debug(Fore.BLUE + f'{self.queries[-1]}')
         logger.info(Fore.GREEN + f"added {self.queries[-1]} to the list of {self.name} queries")
 
     def getCalendar(self):
         self.queries.append({'name': f'{self.name}_Calendar',
                               'request': getCalendarRequest})
-        logger.debug('getCalendar :' + Fore.BLUE + f'{self.queries[-1]}')
+        logger.debug(Fore.BLUE + f'{self.queries[-1]}')
         logger.info(Fore.GREEN + f"added {self.queries[-1]} to the list of {self.name} queries")
 
     def getChartRange(self, name, symbols, period, start, end):
@@ -79,7 +78,7 @@ class QuerySet:
                         }
                 self.queries.append({'name': f'{self.name}_{name}_ChartRange_{symbol}',
                                   'request': request})
-                logger.debug('getChartRange :' + Fore.BLUE + f'{self.queries[-1]}')
+                logger.debug(Fore.BLUE + f'{self.queries[-1]}')
                 logger.info(Fore.GREEN + f"added {self.queries[-1]} to the list of {self.name} queries")
         except:
             logger.exception()
@@ -117,8 +116,7 @@ class AccessAPI:
                     request = query['request']
                     name = query['name']
                     time.sleep(0.2)
-                    logger.debug('staticDataRequest :'\
-                            + Fore.BLUE + f'request {name} = {request}')
+                    logger.debug(Fore.BLUE + f'request {name} = {request}')
                     for _ in trange(len(args), bar_format="{l_bar}%s{bar}%s{r_bar}" % (Fore.GREEN, Fore.WHITE),
                                     desc=Fore.BLUE + f"Downloading {request}"):
                         self.static_s.send(ujson.dumps(request).encode(FORMAT))
@@ -132,8 +130,7 @@ class AccessAPI:
                     if self.datas[name]['status'] is False:
                         logger.info(Fore.RED + f"{name.upper()} : {self.datas[name]['status']}")
                         try:
-                            logger.error('staticDataRequest :'\
-                                         + Fore.RED + self.datas[name]['errorDescr']\
+                            logger.error(Fore.RED + self.datas[name]['errorDescr']\
                                          + '\n')
                         except:
                             logger.exception(Fore.RED + 'Error not listed on API documentation')
@@ -150,9 +147,9 @@ class AccessAPI:
             self.stream_socket_list[name] = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.stream_socket_list[name].connect((add, STREAM_PORT))
             self.stream_socket_list[name] = ssl.wrap_socket(self.stream_socket_list[name])
-            self.stream_socket_list[name].settimeout(5)
+            self.stream_socket_list[name].settimeout(60)
             self.is_socket_open[name] = True
-        logger.debug('streamSocketInit(): ' + Fore.BLUE + f'{self.stream_socket_list}, {self.is_socket_open}')
+        logger.debug(Fore.BLUE + f'{self.stream_socket_list}, {self.is_socket_open}')
 
 
     def streamTickPrices(self, socket_name, thread_name, symbol):
@@ -160,7 +157,7 @@ class AccessAPI:
             self.thread_list[thread_name] = threading.Thread(target=self.streamListen, args=[socket_name])
             self.thread_list[thread_name].start()
         except:
-            logger.exception('streamTickPrices(): ' + Fore.RED + f'Exception while trying to open thread')
+            logger.exception(Fore.RED + f'Exception while trying to open thread')
         try:
             request = {"command": "getTickPrices",
                        "streamSessionId": self.key,
@@ -170,7 +167,7 @@ class AccessAPI:
             self.stream_socket_list[socket_name].send(ujson.dumps(request).encode(FORMAT))
             logger.info(Fore.GREEN + f'Request {request} Sent')
         except:
-            logger.exception('streamTickPrices(): ' + Fore.RED + 'Request not sent')
+            logger.exception(Fore.RED + 'Request not sent')
 
 
     def streamListen(self, socket_name):
@@ -184,9 +181,9 @@ class AccessAPI:
                     logger.debug('listen() :' + Fore.BLUE + f'First read : {data}')
                     self.stream_datas = ujson.loads(datas)
             except socket.timeout:
-                logger.exception('listen(): ' + Fore.RED + "Didn't receive any data for 5sec")
+                logger.exception(Fore.RED + "Didn't receive any data for 5sec")
             except:
-                logger.exception('listen(): ' + Fore.RED + "Couldn't listen")
+                logger.exception(Fore.RED + "Couldn't listen")
         time.sleep(0.2)
 
 
@@ -199,41 +196,41 @@ if __name__ == '__main__':
 
 
 
-    # #!# Create an AccessAPI instance to access XTB JSON API
-    # session = AccessAPI()
-    #
-    # #!# Create a stream of data
-    # session.streamSocketInit('eurusd')
-    # session.streamTickPrices('eurusd', 'eurusd', 'EURUSD')
-    #
-    # #!#Create a QuerySet
-    # req = QuerySet('first_query')
-    #
-    # #!# Add queries to the QuerySet
-    # symbols = ["EURUSD",
-    #            'OIL.WTI',
-    #            'GBPUSD'
-    #            ]
-    # req.getChartRange('hist_datas', symbols, 240, '2020-06-10 09:00:00',
-    #                                                  '2020-07-24 19:00:00')
-    # req.getChartRange('short_datas', symbols, 5, '2020-07-18 09:00:00',
-    #                                                  '2020-07-24 19:00:00')
-    #
-    # req.getMarginTrade(*[('EURUSD', 1), ('GBPUSD', 1)])
-    # req.getUserData()
-    # logger.debug('Main :' + Fore.BLUE + f'requests = {[query for query in req.queries]}')
-    #
-    #
-    # #!# Pass the QuerySet to the API
-    # session.staticDataRequest(req)
-    # logger.debug('Main :' + Fore.BLUE + f'datas = {session.datas}')
-    #
-    # #!# Process collected datas
-    # datasets = api_to_dataset(session.datas)
-    # logger.debug('Main :' + Fore.BLUE + f'{datasets[0]}')
-    #
-    # time.sleep(2)
-    # session.is_socket_open['eurusd'] = False
-    # logger.debug('Main :' + Fore.BLUE + f'{session.stream_datas}')
+    #!# Create an AccessAPI instance to access XTB JSON API
+    session = AccessAPI()
+
+    #!# Create a stream of data
+    session.streamSocketInit('eurusd')
+    session.streamTickPrices('eurusd', 'eurusd', 'EURUSD')
+
+    #!#Create a QuerySet
+    req = QuerySet('first_query')
+
+    #!# Add queries to the QuerySet
+    symbols = ["EURUSD",
+               'OIL.WTI',
+               'GBPUSD'
+               ]
+    req.getChartRange('hist_datas', symbols, 240, '2020-06-10 02:00:00',
+                                                     '2020-06-10 12:00:00')
+    req.getChartRange('short_datas', symbols, 5, '2020-07-18 09:00:00',
+                                                     '2020-07-24 19:00:00')
+
+    req.getMarginTrade(*[('EURUSD', 1), ('GBPUSD', 1)])
+    req.getUserData()
+    logger.debug(Fore.BLUE + f'requests = {[query for query in req.queries]}')
+
+
+    #!# Pass the QuerySet to the API
+    session.staticDataRequest(req)
+    logger.debug(Fore.BLUE + f'datas = {session.datas}')
+
+    #!# Process collected datas
+    datasets = api_to_dataset(session.datas)
+    logger.debug(Fore.BLUE + f'{datasets[0]}')
+
+    time.sleep(2)
+    session.is_socket_open['eurusd'] = False
+    logger.debug(Fore.BLUE + f'{session.stream_datas}')
 
     pass
