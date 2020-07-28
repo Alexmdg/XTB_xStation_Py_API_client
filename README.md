@@ -8,12 +8,16 @@ Python tools to communicate with the "XTB JSON API" and process the collected da
 
     session = AccessAPI()
 
-**Create a stream of data**
+**Get datas from stream :**
 
     session.streamSocketInit('eurusd')
     session.streamTickPrices('eurusd', 'eurusd', 'EURUSD')
 
-**Create a QuerySet**
+**Get datas from main port :**
+
+*Create a QuerySet*
+
+QuerySet is a class allowing to regroup lists of queries. Queries are "XTB api" json requests associated to a name.
 
     req = QuerySet('first_query')
 
@@ -29,18 +33,16 @@ Python tools to communicate with the "XTB JSON API" and process the collected da
                                                      '2020-07-24 19:00:00')
     req.getMarginTrade(*[('EURUSD', 1), ('GBPUSD', 1)])
     req.getUserData()
-    logger.debug(Fore.BLUE + f'requests = {[query for query in req.queries]}')
-
+    
 
 **Pass the QuerySet to the API**
 
     session.staticDataRequest(req)
-    logger.debug(Fore.BLUE + f'datas = {session.datas}')
+    
 
 **Process collected datas**
 
     datasets = api_to_dataset(session.datas)
-    logger.debug(Fore.BLUE + f'{datasets[0]}')
-    time.sleep(2)
+    time.sleep(10)
     session.is_socket_open['eurusd'] = False
-    logger.debug(Fore.BLUE + f'{session.stream_datas}')
+
