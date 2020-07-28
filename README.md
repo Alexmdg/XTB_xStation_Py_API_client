@@ -21,7 +21,7 @@ QuerySet is a class allowing to regroup lists of queries. Queries are "XTB api" 
 
     req = QuerySet('first_query')
 
-**Add queries to the QuerySet**
+*Add queries to the QuerySet*
 
     symbols = ["EURUSD",
                'OIL.WTI',
@@ -35,12 +35,12 @@ QuerySet is a class allowing to regroup lists of queries. Queries are "XTB api" 
     req.getUserData()
     
 
-**Pass the QuerySet to the API**
+*Pass the QuerySet to the API*
 
     session.staticDataRequest(req)
     
 
-**Process collected datas**
+*Process collected datas*
 
     datasets = api_to_dataset(session.datas)
     time.sleep(10)
