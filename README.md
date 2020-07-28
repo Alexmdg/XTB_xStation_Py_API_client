@@ -4,6 +4,8 @@ Python tools to communicate with the "XTB JSON API" and process the collected da
 
 # Quick Exemple
 
+See and run this example at the end of api_access.py
+
 **Create an AccessAPI instance to access XTB JSON API**
 
     session = AccessAPI()
