@@ -3,16 +3,20 @@ Python tools to communicate with the "XTB JSON API" and process the collected da
 
 
 **Create an AccessAPI instance to access XTB JSON API**
+
     session = AccessAPI()
 
 **Create a stream of data**
+
     session.streamSocketInit('eurusd')
     session.streamTickPrices('eurusd', 'eurusd', 'EURUSD')
 
 **Create a QuerySet**
+
     req = QuerySet('first_query')
 
 **Add queries to the QuerySet**
+
     symbols = ["EURUSD",
                'OIL.WTI',
                'GBPUSD'
@@ -27,10 +31,12 @@ Python tools to communicate with the "XTB JSON API" and process the collected da
 
 
 **Pass the QuerySet to the API**
+
     session.staticDataRequest(req)
     logger.debug(Fore.BLUE + f'datas = {session.datas}')
 
 **Process collected datas**
+
     datasets = api_to_dataset(session.datas)
     logger.debug(Fore.BLUE + f'{datasets[0]}')
     time.sleep(2)
