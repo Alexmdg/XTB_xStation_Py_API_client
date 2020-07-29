@@ -2,7 +2,6 @@ import ujson, sqlite3, pandas
 from settings import *
 
 
-
 def api_to_json(datas, filename):
     with open(filename, 'wb') as f:
         f.write(ujson.dumps(datas).encode(FORMAT))

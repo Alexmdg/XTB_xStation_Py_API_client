@@ -10,19 +10,21 @@ FORMAT = 'UTF-8'
 
 ####            Logging           ####
 
-logger = logging.getLogger(__name__)
-filelogger = logging.getLogger(f"f_{__name__}")
-formatter = logging.Formatter(Fore.WHITE + '%(asctime)s:%(levelname)s:%(funcName)s:%(message)s')
-handler = logging.StreamHandler()
-filehandler = logging.FileHandler(f"{__name__}.log")
-handler.setFormatter(formatter)
-logger.addHandler(handler)
-filehandler.setFormatter(formatter)
-filelogger.addHandler(filehandler)
+def createLogger(name, file=None,):
+    logger = logging.getLogger(name)
+    formatter = logging.Formatter(Fore.WHITE + '%(asctime)s:%(levelname)s:%(funcName)s:%(message)s')
+    handler = logging.StreamHandler()
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+    if file is True :
+        filelogger = logging.getLogger(f"f_{name}")
+        filehandler = logging.FileHandler(f"{name}.log")
+        filehandler.setFormatter(formatter)
+        filelogger.addHandler(filehandler)
+        return logger, filelogger
+    else:
+        return logger
 
-
-logger.setLevel(logging.DEBUG)
-filelogger.setLevel(logging.DEBUG)
 
 
 

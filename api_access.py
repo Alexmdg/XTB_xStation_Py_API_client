@@ -4,6 +4,11 @@ from datetime import datetime
 from data_processing import *
 
 
+logger, filelogger = createLogger(__name__, file=True)
+logger.setLevel(logging.DEBUG)
+filelogger.setLevel(logging.DEBUG)
+
+
 ####            QuerySets are named lists of queries (static requests each associated to a name)           ####
 class QuerySet:
 
@@ -120,13 +125,13 @@ class AccessAPI:
                     for _ in trange(len(args), bar_format="{l_bar}%s{bar}%s{r_bar}" % (Fore.GREEN, Fore.WHITE),
                                     desc=Fore.BLUE + f"Downloading {request}"):
                         self.static_s.send(ujson.dumps(request).encode(FORMAT))
-
                         data = self.static_s.recv().decode(FORMAT)
                         self.datas[name] = '' + data
                         while '\n\n' not in data:
                             data = self.static_s.recv().decode(FORMAT)
                             self.datas[name] = self.datas[name] + data
                         self.datas[name] = ujson.loads(self.datas[name])
+                        filelogger.debug(ujson.dumps(self.datas[name], indent=4))
                     if self.datas[name]['status'] is False:
                         logger.info(Fore.RED + f"{name.upper()} : {self.datas[name]['status']}")
                         try:
