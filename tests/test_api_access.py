@@ -3,7 +3,7 @@ currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentfram
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0,parentdir)
 
-from api_access import *
+from api_access import QuerySet, AccessAPI
 from settings import *
 
 
@@ -122,10 +122,7 @@ class TestQuerySet:
         assert len(errors) == 0
 
 
-
-
     class TestAccessAPI:
-
         session = AccessAPI()
         qs = QuerySet('queryset')
         symbols = ["EURUSD",
@@ -134,7 +131,6 @@ class TestQuerySet:
                    ]
         qs.getChartRange('hist', symbols, 240, '2020-06-10 08:00:00',
                                                          '2020-06-10 12:00:00')
-
         qs.getMarginTrade(*[('EURUSD', 1), ('GBPUSD', 1)])
         qs.getUserData()
 
@@ -149,11 +145,10 @@ class TestQuerySet:
         def test_staticDataRequest(self):
 
             errors = []
-            self.sessions.staticDataRequest(self.qs)
-            filelogger.debug(self.session.datas)
-            pass
+            self.session.staticDataRequest(self.qs)
+            if len(self.session.datas) != 6:
+                errors.append('wrong number of request')
 
-
-
+            assert len(errors) == 0
 
         pass

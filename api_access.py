@@ -1,12 +1,16 @@
-import socket, ssl, time, threading
+import socket, ssl, time, threading, ujson
 from tqdm import trange
 from datetime import datetime
-from data_processing import *
+from settings import *
+
+
+
 
 
 logger, filelogger = createLogger(__name__, file=True)
-logger.setLevel(logging.DEBUG)
-filelogger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
+filelogger.setLevel(logging.INFO)
+
 
 
 ####            QuerySets are named lists of queries (static requests each associated to a name)           ####
@@ -131,7 +135,6 @@ class AccessAPI:
                             data = self.static_s.recv().decode(FORMAT)
                             self.datas[name] = self.datas[name] + data
                         self.datas[name] = ujson.loads(self.datas[name])
-                        filelogger.debug(ujson.dumps(self.datas[name], indent=4))
                     if self.datas[name]['status'] is False:
                         logger.info(Fore.RED + f"{name.upper()} : {self.datas[name]['status']}")
                         try:
@@ -141,7 +144,7 @@ class AccessAPI:
                             logger.exception(Fore.RED + 'Error not listed on API documentation')
                     else:
                         logger.info(Fore.GREEN + f"{name.upper()} : {self.datas[name]['status']}")
-
+            filelogger.info(self.datas.keys())
         except NameError:
             logger.exception(Fore.RED + 'invalid argument' + '\n')
 
@@ -195,6 +198,7 @@ class AccessAPI:
 
 
 if __name__ == '__main__':
+    from data_processing import api_to_dataset
 
 
     #TODO#         Uncomment and modify with your values for a quick first use
@@ -217,7 +221,7 @@ if __name__ == '__main__':
                'GBPUSD'
                ]
     req.getChartRange('hist_datas', symbols, 240, '2020-06-10 02:00:00',
-                                                     '2020-06-10 12:00:00')
+                                                     '2020-07-24 12:00:00')
     req.getChartRange('short_datas', symbols, 5, '2020-07-18 09:00:00',
                                                      '2020-07-24 19:00:00')
 

@@ -30,7 +30,7 @@ QuerySet is a class allowing to regroup lists of queries. Queries are "XTB api" 
                'GBPUSD'
                ]
     req.getChartRange('hist_datas', symbols, 240, '2020-06-10 02:00:00',
-                                                     '2020-06-10 12:00:00')
+                                                     '2020-07-24 12:00:00')
     req.getChartRange('short_datas', symbols, 5, '2020-07-18 09:00:00',
                                                      '2020-07-24 19:00:00')
     req.getMarginTrade(*[('EURUSD', 1), ('GBPUSD', 1)])

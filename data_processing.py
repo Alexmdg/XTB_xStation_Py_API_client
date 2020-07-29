@@ -1,6 +1,9 @@
 import ujson, sqlite3, pandas
 from settings import *
 
+logger = createLogger(__name__)
+logger.setLevel(logging.INFO)
+
 
 def api_to_json(datas, filename):
     with open(filename, 'wb') as f:
