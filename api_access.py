@@ -15,7 +15,6 @@ filelogger.setLevel(logging.INFO)
 
 ####            QuerySets are named lists of queries (static requests each associated to a name)           ####
 class QuerySet:
-
     def __init__(self, name):
         self.name = name
         self.queries = []
@@ -102,7 +101,6 @@ class AccessAPI:
     is_socket_open = {}
     thread_list = {}
 
-
     def __init__(self):
         s_add = socket.getaddrinfo(SERVER, STATIC_PORT)[0][4][0]
         self.static_s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -116,7 +114,6 @@ class AccessAPI:
             logger.info(Fore.GREEN + 'LOGIN : {} \n'.format(status))
         except:
             logger.exception(Fore.RED + status['errorDescr'].upper())
-
 
     def staticDataRequest(self, *args):  #  feed with QuerySets
         try:
@@ -148,7 +145,6 @@ class AccessAPI:
         except NameError:
             logger.exception(Fore.RED + 'invalid argument' + '\n')
 
-
     def streamSocketInit(self, *socket_names):
         for name in socket_names:
             add = socket.getaddrinfo(SERVER, STREAM_PORT)[0][4][0]
@@ -159,6 +155,21 @@ class AccessAPI:
             self.is_socket_open[name] = True
         logger.debug(Fore.BLUE + f'{self.stream_socket_list}, {self.is_socket_open}')
 
+    def streamListen(self, socket_name):
+        while self.is_socket_open[socket_name] is True:
+            try:
+                data = ''
+                datas = ''
+                while '\n\n' not in data:
+                    data = self.stream_socket_list[socket_name].recv().decode(FORMAT)
+                    datas = datas + data
+                    logger.debug('listen() :' + Fore.BLUE + f'First read : {data}')
+                    self.stream_datas = ujson.loads(datas)
+            except socket.timeout:
+                logger.exception(Fore.RED + "Didn't receive any data for 5sec")
+            except:
+                logger.exception(Fore.RED + "Couldn't listen")
+        time.sleep(0.2)
 
     def streamTickPrices(self, socket_name, thread_name, symbol):
         try:
@@ -176,23 +187,17 @@ class AccessAPI:
             logger.info(Fore.GREEN + f'Request {request} Sent')
         except:
             logger.exception(Fore.RED + 'Request not sent')
+    
+    def stopTickPrices(self, socket_name, thread_name, symbol):
+        try:
+            request = {"command": "getTickPrices",
+                       "symbol": symbol}
+            self.stream_socket_list[socket_name].send(ujson.dumps(request).encode(FORMAT))
+            session.is_socket_open[socket_name] = False
+            self.thread_list[thread_name].close()
+        except:
+            logger.exception(Fore.RED + "Couldn't close streaming connection") 
 
-
-    def streamListen(self, socket_name):
-        while self.is_socket_open[socket_name] is True:
-            try:
-                data = ''
-                datas = ''
-                while '\n\n' not in data:
-                    data = self.stream_socket_list[socket_name].recv().decode(FORMAT)
-                    datas = datas + data
-                    logger.debug('listen() :' + Fore.BLUE + f'First read : {data}')
-                    self.stream_datas = ujson.loads(datas)
-            except socket.timeout:
-                logger.exception(Fore.RED + "Didn't receive any data for 5sec")
-            except:
-                logger.exception(Fore.RED + "Couldn't listen")
-        time.sleep(0.2)
 
 
 
