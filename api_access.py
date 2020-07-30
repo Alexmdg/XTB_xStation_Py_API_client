@@ -12,6 +12,18 @@ logger.setLevel(logging.INFO)
 filelogger.setLevel(logging.INFO)
 
 
+####            Unmutable Requests           ####
+loginRequest = {"command": "login",
+                "arguments": {"userId": USERID,
+                              "password": PASSWORD}
+                    }
+getVersionRequest = {'command': 'getVersion'}
+logoutRequest = {"command" : "logout"}
+getMarginLevelRequest = {"command": "getMarginLevel"}
+getAllSymbolsRequest = {"command": "getAllSymbols"}
+getCalendarRequest = {"command": "getCalendar"}
+getUserDataRequest = {"command": "getCurrentUserData"}
+
 
 ####            QuerySets are named lists of queries (static requests each associated to a name)           ####
 class QuerySet:
@@ -155,7 +167,7 @@ class AccessAPI:
             self.is_socket_open[name] = True
         logger.debug(Fore.BLUE + f'{self.stream_socket_list}, {self.is_socket_open}')
 
-    def streamListen(self, socket_name):
+    def _streamListen(self, socket_name):
         while self.is_socket_open[socket_name] is True:
             try:
                 data = ''
@@ -171,12 +183,15 @@ class AccessAPI:
                 logger.exception(Fore.RED + "Couldn't listen")
         time.sleep(0.2)
 
-    def streamTickPrices(self, socket_name, thread_name, symbol):
+    def _streamRequest(self, socket_name):
         try:
-            self.thread_list[thread_name] = threading.Thread(target=self.streamListen, args=[socket_name])
-            self.thread_list[thread_name].start()
+            self.thread_list[socket_name] = threading.Thread(target=self._streamListen, args=[socket_name])
+            self.thread_list[socket_name].start()
         except:
             logger.exception(Fore.RED + f'Exception while trying to open thread')
+
+    def streamTickPrices(self, socket_name, symbol):
+        self._streamRequest(socket_name)
         try:
             request = {"command": "getTickPrices",
                        "streamSessionId": self.key,
@@ -184,26 +199,23 @@ class AccessAPI:
                        "minArrivalTime": 1500,
                        "maxLevel": 2}
             self.stream_socket_list[socket_name].send(ujson.dumps(request).encode(FORMAT))
-            logger.info(Fore.GREEN + f'Request {request} Sent')
+            logger.info(Fore.GREEN + f'stream {socket_name} Sent')
         except:
-            logger.exception(Fore.RED + 'Request not sent')
-    
-    def stopTickPrices(self, socket_name, thread_name, symbol):
+            logger.exception(Fore.RED + "Couldn't open stream")
+
+    def stopTickPrices(self, socket_name, symbol):
         try:
             request = {"command": "getTickPrices",
                        "symbol": symbol}
             self.stream_socket_list[socket_name].send(ujson.dumps(request).encode(FORMAT))
-            session.is_socket_open[socket_name] = False
-            self.thread_list[thread_name].close()
+            self.is_socket_open[socket_name] = False
+            self.thread_list[socket_name].join()
+            self.stream_socket_list[socket_name].close()
+            logger.info(Fore.GREEN + f'Thread {socket_name} terminated and socket {socket_name} closed')
         except:
             logger.exception(Fore.RED + "Couldn't close streaming connection")
 
     def streamBalance(self, socket_name, thread_name):
-        try:
-            self.thread_list[thread_name] = threading.Thread(target=self.streamListen, args=[socket_name])
-            self.thread_list[thread_name].start()
-        except:
-            logger.exception(Fore.RED + f'Exception while trying to open thread')
         try:
             request = {"command": "getBalance",
                        "streamSessionId": self.key}
@@ -212,54 +224,62 @@ class AccessAPI:
         except:
             logger.exception(Fore.RED + 'Request not sent')
 
+    def stopBalance(self, socket_name, thread_name):
+        try:
+            request = {"command": "getTickPrices"}
+            self.stream_socket_list[socket_name].send(ujson.dumps(request).encode(FORMAT))
+            self.is_socket_open[socket_name] = False
+            self.thread_list[socket_name].join()
+            self.stream_socket_list[socket_name].close()
+            logger.info(Fore.GREEN + f'Thread {socket_name} terminated and socket {socket_name} closed')
+        except:
+            logger.exception(Fore.RED + "Couldn't close streaming connection")
 
 
 
 
 
 if __name__ == '__main__':
-    from data_processing import api_to_dataset
+
 
 
     #TODO#         Uncomment and modify with your values for a quick first use
 
 
-
-    #!# Create an AccessAPI instance to access XTB JSON API
-    session = AccessAPI()
-
-    #!# Create a stream of data
-    session.streamSocketInit('eurusd')
-    session.streamTickPrices('eurusd', 'eurusd', 'EURUSD')
-
-    #!#Create a QuerySet
-    req = QuerySet('first_query')
-
-    #!# Add queries to the QuerySet
-    symbols = ["EURUSD",
-               'OIL.WTI',
-               'GBPUSD'
-               ]
-    req.getChartRange('hist_datas', symbols, 240, '2020-06-10 02:00:00',
-                                                     '2020-07-24 12:00:00')
-    req.getChartRange('short_datas', symbols, 5, '2020-07-18 09:00:00',
-                                                     '2020-07-24 19:00:00')
-
-    req.getMarginTrade(*[('EURUSD', 1), ('GBPUSD', 1)])
-    req.getUserData()
-    logger.debug(Fore.BLUE + f'requests = {[query for query in req.queries]}')
-
-
-    #!# Pass the QuerySet to the API
-    session.staticDataRequest(req)
-    logger.debug(Fore.BLUE + f'datas = {session.datas}')
-
-    #!# Process collected datas
-    datasets = api_to_dataset(session.datas)
-    logger.debug(Fore.BLUE + f'{datasets[0]}')
-
-    time.sleep(2)
-    session.is_socket_open['eurusd'] = False
-    logger.debug(Fore.BLUE + f'{session.stream_datas}')
+    # from data_processing import static_to_chartdataset
+    # #!# Create an AccessAPI instance to access XTB JSON API
+    # session = AccessAPI()
+    #
+    # #!# Create a stream of data
+    # session.streamSocketInit('eurusd')
+    # session.streamTickPrices('eurusd', 'EURUSD')
+    #
+    # #!#Create a QuerySet
+    # req = QuerySet('first_query')
+    #
+    # #!# Add queries to the QuerySet
+    # symbols = ["EURUSD",
+    #            'OIL.WTI',
+    #            'GBPUSD'
+    #            ]
+    # req.getChartRange('hist_datas', symbols, 240, '2020-06-10 02:00:00',
+    #                                                  '2020-07-24 12:00:00')
+    # req.getChartRange('short_datas', symbols, 5, '2020-07-18 09:00:00',
+    #                                                  '2020-07-24 19:00:00')
+    #
+    # req.getMarginTrade(*[('EURUSD', 1), ('GBPUSD', 1)])
+    # req.getUserData()
+    # logger.debug(Fore.BLUE + f'requests = {[query for query in req.queries]}')
+    #
+    #
+    # #!# Pass the QuerySet to the API
+    # session.staticDataRequest(req)
+    # logger.debug(Fore.BLUE + f'datas = {session.datas}')
+    #
+    # #!# Process collected datas
+    # datasets = static_to_chartdataset(session.datas)
+    # logger.debug(Fore.BLUE + f'{datasets[0]}')
+    #
+    # session.stopTickPrices('eurusd', 'EURUSD')
 
     pass
