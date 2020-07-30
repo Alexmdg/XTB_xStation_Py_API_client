@@ -10,7 +10,7 @@ def api_to_json(datas, filename):
         f.write(ujson.dumps(datas).encode(FORMAT))
         logger.info(Fore.GREEN + f'datas successfully saved in {filename}')
 
-def api_to_dataset(datas):
+def static_to_chartdataset(datas):
     i = 0
     df=list(range(0, len(datas)))
     for key in datas:
@@ -18,3 +18,4 @@ def api_to_dataset(datas):
             df[i] = pandas.DataFrame(datas[key]['returnData']['rateInfos'])
             i += 1
     return df
+

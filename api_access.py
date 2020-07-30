@@ -196,7 +196,22 @@ class AccessAPI:
             session.is_socket_open[socket_name] = False
             self.thread_list[thread_name].close()
         except:
-            logger.exception(Fore.RED + "Couldn't close streaming connection") 
+            logger.exception(Fore.RED + "Couldn't close streaming connection")
+
+    def streamBalance(self, socket_name, thread_name):
+        try:
+            self.thread_list[thread_name] = threading.Thread(target=self.streamListen, args=[socket_name])
+            self.thread_list[thread_name].start()
+        except:
+            logger.exception(Fore.RED + f'Exception while trying to open thread')
+        try:
+            request = {"command": "getBalance",
+                       "streamSessionId": self.key}
+            self.stream_socket_list[socket_name].send(ujson.dumps(request).encode(FORMAT))
+            logger.info(Fore.GREEN + f'Request {request} Sent')
+        except:
+            logger.exception(Fore.RED + 'Request not sent')
+
 
 
 
