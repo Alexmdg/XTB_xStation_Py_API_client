@@ -1,12 +1,12 @@
-import socket, ssl, time, threading, ujson, concurrent.futures
+import socket, ssl, time, threading, ujson
 from tqdm import trange
 from datetime import datetime
 from settings import *
 
 # noinspection SpellCheckingInspection
 logger, filelogger = createLogger(__name__, file=True)
-logger.setLevel(logging.DEBUG)
-filelogger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
+filelogger.setLevel(logging.INFO)
 
 ####            QuerySets are named lists of queries (static requests each associated to a name)           ####
 class QuerySet:
@@ -151,7 +151,7 @@ class AccessAPI:
         while self.is_streaming is True:
             data = ''
             try: data += self.stream_s.recv().decode(FORMAT)
-            except socket.timeout: logger.debug(Fore.YELLOW + "Didn't receive any data for 5sec")
+            except socket.timeout: logger.debug(Fore.BLUE + "Didn't receive any data for 5sec")
             except: logger.exception(Fore.RED + "Error while trying to receive")
             try:
                 if data != '':
@@ -159,12 +159,14 @@ class AccessAPI:
                     except ValueError: logger.debug(Fore.RED + "Datas not JSON readable: " + Fore.YELLOW + f"{data}")
                     if data['command'] == 'balance':
                         self.stream_datas['balance'].append(data)
-                        logger.debug(Fore.YELLOW + f'{data} added to stream_datas dict')
+                        logger.info(Fore.GREEN + f'datas added to stream_datas["balance"] dict')
+                        logger.debug(Fore.BLUE + f'{data} added to stream_datas dict')
                     elif data['command'] == 'tickPrices':
                         self.stream_datas[f"tickPrices_{data['data']['symbol']}"].append(data)
-                        logger.debug(Fore.YELLOW + f'{data} added to stream_datas dict')
+                        logger.info(Fore.GREEN+ "datas added to stream_datas['" + f"tickPrices_{data['data']['symbol']}] dict")
+                        logger.debug(Fore.BLUE + f'{data} added to stream_datas dict')
             except TypeError:
-                logger.error(Fore.RED + 'Datas was not JSON but string and has not been saved')
+                logger.debug(Fore.RED + 'Datas was not JSON but string and has not been saved')
         self.is_receiving = False
 
     def streamListeningInit(self):
@@ -189,7 +191,7 @@ class AccessAPI:
                        "minArrivalTime": 1500,
                        "maxLevel": 2}
             self.stream_s.send(ujson.dumps(request).encode(FORMAT))
-            logger.debug(Fore.YELLOW + f'Stream request getTickPrices for symbol {symbol} has been sent')
+            logger.debug(Fore.BLUE + f'Stream request getTickPrices for symbol {symbol} has been sent')
         except:
             logger.exception(Fore.RED + "Couldn't open stream")
 
@@ -208,7 +210,7 @@ class AccessAPI:
             request = {"command": "getBalance",
                        "streamSessionId": self.key}
             self.stream_s.send(ujson.dumps(request).encode(FORMAT))
-            logger.debug(Fore.YELLOW + f'Stream request getBalance has been sent')
+            logger.debug(Fore.BLUE + f'Stream request getBalance has been sent')
         except:
             logger.exception(Fore.RED + 'Request not sent')
 
@@ -263,7 +265,7 @@ if __name__ == '__main__':
     # #!# Process collected datas
     # datasets = static_to_chartdataset(session.static_datas)
     # logger.debug(Fore.BLUE + f'{datasets[0]}')
-    # time.sleep(30)
+    # time.sleep(5)
     # session.stopTickPrices('EURUSD')
     # session.stopBalance()
     # session.streamListeningStop()
