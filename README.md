@@ -12,8 +12,9 @@ See and run this example at the end of api_access.py
 
 **Get datas from stream :**
 
-    session.streamSocketInit('eurusd')
-    session.streamTickPrices('eurusd', 'EURUSD')
+    session.streamListeningInit()
+    session.streamTickPrices('EURUSD')
+    session.streamBalance()
 
 **Get datas from main port :**
 
@@ -40,12 +41,13 @@ QuerySet is a class allowing to regroup lists of queries. Queries are "XTB api" 
 *Pass the QuerySet to the API*
 
     session.staticDataRequest(req)
+
+*Process collected static datas*
+
+    datasets = static_to_chartdataset(session.datas)
     
 *Close stream*
 
-    session.stopTickPrices('eurusd', 'EURUSD')
-
-*Process collected datas*
-
-    datasets = static_to_chartdataset(session.datas)
-    logger.debug(Fore.BLUE + f'{datasets[0]}') 
+    session.stopTickPrices('EURUSD')
+    session.stopBalance()
+    session.streamListeningStop()
