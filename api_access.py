@@ -5,7 +5,7 @@ from settings import *
 
 # noinspection SpellCheckingInspection
 logger, filelogger = createLogger(__name__, file=True)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 filelogger.setLevel(logging.INFO)
 
 ####            QuerySets are named lists of queries (static requests each associated to a name)           ####
@@ -169,7 +169,7 @@ class AccessAPI:
                 logger.debug(Fore.RED + 'Datas was not JSON but string and has not been saved')
         self.is_receiving = False
 
-    def streamListeningInit(self):
+    def streamListeningStart(self):
         try:
             self.is_streaming = True
             self.thread = threading.Thread(target=self._streamRecv)
@@ -182,18 +182,19 @@ class AccessAPI:
         self.thread.join()
         logger.info(Fore.GREEN + 'Listening thread terminated')
 
-    def streamTickPrices(self, symbol):
-        self.stream_datas[f"tickPrices_{symbol}"] = []
-        try:
-            request = {"command": "getTickPrices",
-                       "streamSessionId": self.key,
-                       "symbol": symbol,
-                       "minArrivalTime": 1500,
-                       "maxLevel": 2}
-            self.stream_s.send(ujson.dumps(request).encode(FORMAT))
-            logger.debug(Fore.BLUE + f'Stream request getTickPrices for symbol {symbol} has been sent')
-        except:
-            logger.exception(Fore.RED + "Couldn't open stream")
+    def streamTickPrices(self, *symbols):
+        for symbol in symbols:
+            self.stream_datas[f"tickPrices_{symbol}"] = []
+            try:
+                request = {"command": "getTickPrices",
+                           "streamSessionId": self.key,
+                           "symbol": symbol,
+                           "minArrivalTime": 1500,
+                           "maxLevel": 2}
+                self.stream_s.send(ujson.dumps(request).encode(FORMAT))
+                logger.debug(Fore.BLUE + f'Stream request getTickPrices has been sent for symbol {symbol}')
+            except:
+                logger.exception(Fore.RED + "Couldn't open stream")
 
     def stopTickPrices(self, symbol):
         try:
@@ -231,45 +232,45 @@ if __name__ == '__main__':
     #TODO#         Uncomment and modify with your values for a quick first use
 
 
-    # from data_processing import static_to_chartdataset
-    # #!# Create an AccessAPI instance to access XTB JSON API
-    # session = AccessAPI()
-    #
-    # #!# Create a stream of data
-    # session.streamListeningInit()
-    # session.streamTickPrices('EURUSD')
-    # session.streamBalance()
-    #
-    # #!#Create a QuerySet
-    # req = QuerySet('first_query')
-    #
-    # #!# Add queries to the QuerySet
-    # symbols = ["EURUSD",
-    #            'OIL.WTI',
-    #            'GBPUSD'
-    #            ]
-    # req.getChartRange('hist_datas', symbols, 240, '2020-06-10 02:00:00',
-    #                                                  '2020-07-24 12:00:00')
-    # req.getChartRange('short_datas', symbols, 5, '2020-07-18 09:00:00',
-    #                                                  '2020-07-24 19:00:00')
-    #
-    # req.getMarginTrade(*[('EURUSD', 1), ('GBPUSD', 1)])
-    # req.getUserData()
-    # logger.debug(Fore.BLUE + f'requests = {[query for query in req.queries]}')
-    #
-    #
-    # #!# Pass the QuerySet to the API
-    # session.staticDataRequest(req)
-    # logger.debug(Fore.BLUE + f'datas = {[data for data in session.static_datas.keys()]}')
-    #
-    # #!# Process collected datas
-    # datasets = static_to_chartdataset(session.static_datas)
-    # logger.debug(Fore.BLUE + f'{datasets[0]}')
-    # time.sleep(5)
-    # session.stopTickPrices('EURUSD')
-    # session.stopBalance()
-    # session.streamListeningStop()
-    # logger.debug(Fore.BLUE + f'{session.stream_datas}')
-    # filelogger.debug(session.stream_datas)
+    from data_processing import static_to_chartdataset
+    #!# Create an AccessAPI instance to access XTB JSON API
+    session = AccessAPI()
+
+    #!# Create a stream of data
+    session.streamListeningStart()
+    session.streamTickPrices('EURUSD')
+    session.streamBalance()
+
+    #!#Create a QuerySet
+    req = QuerySet('first_query')
+
+    #!# Add queries to the QuerySet
+    symbols = ["EURUSD",
+               'OIL.WTI',
+               'GBPUSD'
+               ]
+    req.getChartRange('hist_datas', symbols, 240, '2020-06-10 02:00:00',
+                                                     '2020-07-24 12:00:00')
+    req.getChartRange('short_datas', symbols, 5, '2020-07-18 09:00:00',
+                                                     '2020-07-24 19:00:00')
+
+    req.getMarginTrade(*[('EURUSD', 1), ('GBPUSD', 1)])
+    req.getUserData()
+    logger.debug(Fore.BLUE + f'requests = {[query for query in req.queries]}')
+
+
+    #!# Pass the QuerySet to the API
+    session.staticDataRequest(req)
+    logger.debug(Fore.BLUE + f'datas = {[data for data in session.static_datas.keys()]}')
+
+    #!# Process collected datas
+    datasets = static_to_chartdataset(session.static_datas)
+    logger.debug(Fore.BLUE + f'{datasets[0]}')
+    time.sleep(10)
+    session.stopTickPrices('EURUSD')
+    session.stopBalance()
+    session.streamListeningStop()
+    logger.debug(Fore.BLUE + f'{session.stream_datas}')
+    filelogger.debug(session.stream_datas)
 
     pass
