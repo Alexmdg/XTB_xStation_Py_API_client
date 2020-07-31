@@ -2,7 +2,7 @@
 Python tools to communicate with the "XTB JSON API" and process the collected datas
 
 
-# Quick Exemple
+# Quick Example
 
 See and run this example at the end of api_access.py
 

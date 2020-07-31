@@ -5,11 +5,11 @@ SERVER = "xapi.xtb.com"
 STATIC_PORT = 5124      #   5124: demo, 5112: real
 STREAM_PORT = 5125      #   5125: demo, 5113: real
 USERID = 11311073       #   set account_id
-PASSWORD = ''           #   set your account_password
+PASSWORD = 'Mdp876800;'           #   set your account_password
 FORMAT = 'UTF-8'
 
-####            Logging           ####
 
+####            Logging           ####
 def createLogger(name, file=None,):
     logger = logging.getLogger(name)
     formatter = logging.Formatter(Fore.WHITE + '%(asctime)s:%(levelname)s:%(funcName)s:%(message)s')
@@ -26,5 +26,15 @@ def createLogger(name, file=None,):
         return logger
 
 
-
+####            Unmutable Requests           ####
+loginRequest = {"command": "login",
+                "arguments": {"userId": USERID,
+                              "password": PASSWORD}
+                    }
+getVersionRequest = {'command': 'getVersion'}
+logoutRequest = {"command" : "logout"}
+getMarginLevelRequest = {"command": "getMarginLevel"}
+getAllSymbolsRequest = {"command": "getAllSymbols"}
+getCalendarRequest = {"command": "getCalendar"}
+getUserDataRequest = {"command": "getCurrentUserData"}
 
