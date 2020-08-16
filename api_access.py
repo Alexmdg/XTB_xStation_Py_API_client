@@ -1,7 +1,8 @@
-import socket, ssl, time, threading, ujson
+import socket, ssl, time, threading, ujson, pandas
 from tqdm import trange
 from datetime import datetime
 from settings import *
+
 
 # noinspection SpellCheckingInspection
 logger, filelogger = createLogger(__name__, file=True)
@@ -151,7 +152,6 @@ class AccessAPI:
         while self.is_streaming is True:
             data = ''
             try: data += self.stream_s.recv().decode(FORMAT)
-            except socket.timeout: logger.debug(Fore.BLUE + "Didn't receive any data for 5sec")
             except: logger.exception(Fore.RED + "Error while trying to receive")
             try:
                 if data != '':
@@ -162,7 +162,7 @@ class AccessAPI:
                         logger.info(Fore.GREEN + f'datas added to stream_datas["balance"] dict')
                         logger.debug(Fore.BLUE + f'{data} added to stream_datas dict')
                     elif data['command'] == 'tickPrices':
-                        self.stream_datas[f"tickPrices_{data['data']['symbol']}"].append(data)
+                        self.stream_datas[f"tickPrices_{data['data']['symbol']}"].append(data['data'])
                         logger.info(Fore.GREEN+ "datas added to stream_datas['" + f"tickPrices_{data['data']['symbol']}] dict")
                         logger.debug(Fore.BLUE + f'{data} added to stream_datas dict')
             except TypeError:
@@ -184,7 +184,7 @@ class AccessAPI:
 
     def streamTickPrices(self, *symbols):
         for symbol in symbols:
-            self.stream_datas[f"tickPrices_{symbol}"] = []
+            self.stream_datas[f"tickPrices_{symbol}"] = pandas.DataFrame()
             try:
                 request = {"command": "getTickPrices",
                            "streamSessionId": self.key,

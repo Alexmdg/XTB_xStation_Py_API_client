@@ -2,10 +2,10 @@ import logging
 from colorama import Fore
 
 SERVER = "xapi.xtb.com"
-STATIC_PORT = 5124      #   5124: demo, 5112: real
-STREAM_PORT = 5125      #   5125: demo, 5113: real
-USERID = 11311073       #   set account_id
-PASSWORD = ''           #   set your account_password
+STATIC_PORT = 5124          #   5124: demo, 5112: real
+STREAM_PORT = 5125          #   5125: demo, 5113: real
+USERID = 11360828           #   set account_id
+PASSWORD = 'A00000000'     #   set your account_password
 FORMAT = 'UTF-8'
 
 

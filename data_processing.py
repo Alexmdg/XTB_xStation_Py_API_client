@@ -1,4 +1,4 @@
-import ujson, sqlite3, pandas
+import ujson, pandas
 from settings import *
 
 logger = createLogger(__name__)
@@ -18,4 +18,7 @@ def static_to_chartdataset(datas):
             df[i] = pandas.DataFrame(datas[key]['returnData']['rateInfos'])
             i += 1
     return df
+
+
+
 
