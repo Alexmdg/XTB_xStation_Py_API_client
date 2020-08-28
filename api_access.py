@@ -155,21 +155,22 @@ class AccessAPI:
         while self.is_streaming is True:
             data = ''
             try: data += self.stream_s.recv().decode(FORMAT)
-            except: logger.exception(Fore.RED + "Error while trying to receive")
+            except: log.main.exception(Fore.RED + "Error while trying to receive")
+            log.dataIO.cmn_dbg(f'{data["command"]}')
             try:
                 if data != '':
                     try: data = ujson.loads(data)
                     except ValueError: logger.debug(Fore.RED + "Datas not JSON readable: " + Fore.YELLOW + f"{data}")
                     if data['command'] == 'balance':
                         self.stream_datas['balance'].append(data)
-                        logger.info(Fore.GREEN + f'datas added to stream_datas["balance"] dict')
-                        logger.debug(Fore.BLUE + f'{data} added to stream_datas dict')
+                        log.main.info(Fore.GREEN + f'datas added to stream_datas["balance"] dict')
+                        log.main.debug(Fore.BLUE + f'{data} added to stream_datas dict')
                     elif data['command'] == 'tickPrices':
                         self.stream_datas[f"tickPrices_{data['data']['symbol']}"].append(data['data'])
                         logger.info(Fore.GREEN+ "datas added to stream_datas['" + f"tickPrices_{data['data']['symbol']}] dict")
                         logger.debug(Fore.BLUE + f'{data} added to stream_datas dict')
             except TypeError:
-                logger.debug(Fore.RED + 'Datas was not JSON but string and has not been saved')
+                log.main.debug(Fore.RED + 'Datas was not JSON but string and has not been saved')
         self.is_receiving = False
 
     def streamListeningStart(self):
@@ -187,17 +188,18 @@ class AccessAPI:
 
     def streamTickPrices(self, *symbols):
         for symbol in symbols:
-            self.stream_datas[f"tickPrices_{symbol}"] = pandas.DataFrame()
-            try:
-                request = {"command": "getTickPrices",
-                           "streamSessionId": self.key,
-                           "symbol": symbol,
-                           "minArrivalTime": 1500,
-                           "maxLevel": 2}
-                self.stream_s.send(ujson.dumps(request).encode(FORMAT))
-                logger.debug(Fore.BLUE + f'Stream request getTickPrices has been sent for symbol {symbol}')
-            except:
-                logger.exception(Fore.RED + "Couldn't open stream")
+            with log.bugCheck(log.dataIO):
+                self.stream_datas[f"tickPrices_{symbol}"] = pandas.DataFrame()
+                try:
+                    request = {"command": "getTickPrices",
+                               "streamSessionId": self.key,
+                               "symbol": symbol,
+                               "minArrivalTime": 1500,
+                               "maxLevel": 2}
+                    self.stream_s.send(ujson.dumps(request).encode(FORMAT))
+                    logger.debug(Fore.BLUE + f'Stream request getTickPrices has been sent for symbol {symbol}')
+                except:
+                    logger.exception(Fore.RED + "Couldn't open stream")
 
     def stopTickPrices(self, symbol):
         try:
@@ -209,14 +211,15 @@ class AccessAPI:
             logger.exception(Fore.RED + f"Couldn't send stopTickPrices request for symbol {symbol}")
 
     def streamBalance(self):
-        self.stream_datas['balance'] = []
-        try:
-            request = {"command": "getBalance",
-                       "streamSessionId": self.key}
-            self.stream_s.send(ujson.dumps(request).encode(FORMAT))
-            logger.debug(Fore.BLUE + f'Stream request getBalance has been sent')
-        except:
-            logger.exception(Fore.RED + 'Request not sent')
+        with log.bugCheck(log.dataIO):
+            self.stream_datas['balance'] = []
+            try:
+                request = {"command": "getBalance",
+                           "streamSessionId": self.key}
+                self.stream_s.send(ujson.dumps(request).encode(FORMAT))
+                logger.debug(Fore.BLUE + f'Stream request getBalance has been sent')
+            except:
+                logger.exception(Fore.RED + 'Request not sent')
 
     def stopBalance(self):
         try:
