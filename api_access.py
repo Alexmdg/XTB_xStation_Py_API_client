@@ -1,13 +1,20 @@
 import socket, ssl, time, threading, ujson, pandas
+from prelog import CheckLog
+from prelog import LEVELS as poglevel
 from tqdm import trange
 from datetime import datetime
 from settings import *
 
 
-# noinspection SpellCheckingInspection
-logger, filelogger = createLogger(__name__, file=True)
-logger.setLevel(logging.DEBUG)
-filelogger.setLevel(logging.INFO)
+log = CheckLog()
+log.main.setLevel(poglevel['1'])
+log.dataIO.setLevel(poglevel['1'])
+log.dataProc.setLevel(poglevel['1'])
+log.display.setLevel(poglevel['1'])
+
+logger=createLogger(__name__)
+logger.setLevel(logging.INFO)
+
 
 ####            QuerySets are named lists of queries (static requests each associated to a name)           ####
 class QuerySet:
@@ -18,14 +25,14 @@ class QuerySet:
     def getUserData(self):
         self.queries.append({'name': f'{self.name}_UserData',
                               'request': getUserDataRequest})
-        logger.debug(Fore.BLUE + f'{self.queries[-1]}')
-        logger.info(Fore.GREEN + f"added {self.queries[-1]} to the list of {self.name} queries")
+        log.main.debug(f'{self.queries[-1]}')
+        log.main.info(f"added {self.queries[-1]['name']} to the list of {self.name} queries")
 
     def getMarginLevel(self):
         self.queries.append({'name': f'{self.name}_MarginLevel',
                              'request': getMarginLevelRequest})
-        logger.debug(Fore.BLUE + f'{self.queries[-1]}')
-        logger.info(Fore.GREEN + f"added {self.queries[-1]} to the list of {self.name} queries")
+        log.main.debug(f'{self.queries[-1]}')
+        log.main.success(f"added {self.queries[-1]['name']} to the list of {self.name} queries")
 
     def getMarginTrade(self, *args):
         for query in args:
@@ -35,8 +42,8 @@ class QuerySet:
                                                           'volume': query[1]}
                                         }
                                  })
-            logger.debug(Fore.BLUE + f'{self.queries[-1]}')
-            logger.info(Fore.GREEN + f"added {self.queries[-1]} to the list of {self.name} queries")
+            log.main.debug(f'{self.queries[-1]}')
+            log.main.success(f"added {self.queries[-1]['name']} to the list of {self.name} queries")
 
     def getCommissionDef(self, *args):
         #   args:list of tuples ('str', int)
@@ -48,30 +55,30 @@ class QuerySet:
                                                           'volume': query[1]}
                                         }
                                  })
-            logger.debug(Fore.BLUE + f'{self.queries[-1]}')
-            logger.info(Fore.GREEN + f"added {self.queries[-1]} to the list of {self.name} queries")
+            log.main.debug(f'{self.queries[-1]}')
+            log.main.success(f"added {self.queries[-1]['name']} to the list of {self.name} queries")
 
     def getAllSymbols(self):
         self.queries.append({'name': f'{self.name}_AllSymbols',
                               'request': getAllSymbolsRequest})
-        logger.debug(Fore.BLUE + f'{self.queries[-1]}')
-        logger.info(Fore.GREEN + f"added {self.queries[-1]} to the list of {self.name} queries")
+        log.main.debug(f'{self.queries[-1]}')
+        log.main.success(f"added {self.queries[-1]['name']} to the list of {self.name} queries")
 
     def getCalendar(self):
         self.queries.append({'name': f'{self.name}_Calendar',
                               'request': getCalendarRequest})
-        logger.debug(Fore.BLUE + f'{self.queries[-1]}')
-        logger.info(Fore.GREEN + f"added {self.queries[-1]} to the list of {self.name} queries")
+        log.main.debug(f'{self.queries[-1]}')
+        log.main.success(f"added {self.queries[-1]['name']} to the list of {self.name} queries")
 
     def getChartRange(self, name, symbols, period, start, end):
         #   args : (str, list of str, int, str(datetime), str(datetime))
         #   Will register a query in the queryset for each symbol of the list.
-        try:
-            start = datetime.strptime(start, "%Y-%m-%d %H:%M:%S")
-            end = datetime.strptime(end, "%Y-%m-%d %H:%M:%S")
-            start_ts = datetime.timestamp(start)
-            end_ts = datetime.timestamp(end)
-            logger.debug(Fore.BLUE + f'start_ts = {start_ts} -- end_ts = {end_ts}')
+        start = datetime.strptime(start, "%Y-%m-%d %H:%M:%S")
+        end = datetime.strptime(end, "%Y-%m-%d %H:%M:%S")
+        start_ts = datetime.timestamp(start)
+        end_ts = datetime.timestamp(end)
+        with log.bugCheck(log.dataProc, 'getChartRange'):
+            log.main.spc_dbg(f'start_ts = {start_ts} -- end_ts = {end_ts}')
             for symbol in symbols:
                 request = {'command': 'getChartRangeRequest',
                             'arguments': {'info': {'start': 1000 * round(start_ts),
@@ -82,10 +89,9 @@ class QuerySet:
                         }
                 self.queries.append({'name': f'{self.name}_{name}_ChartRange_{symbol}',
                                   'request': request})
-                logger.debug(Fore.BLUE + f'{self.queries[-1]}')
-                logger.info(Fore.GREEN + f"added {self.queries[-1]} to the list of {self.name} queries")
-        except:
-            logger.exception()
+                log.main.spc_dbg(f'{self.queries[-1]}')
+                log.main.success(f"added {self.queries[-1]['name']} to the list of {self.name} queries")
+
 
 
 ####        All communications with the XTB json API happen through an AccessAPI instance         ####
@@ -107,45 +113,42 @@ class AccessAPI:
         self.stream_s.connect((stream_add, STREAM_PORT))
         self.stream_s = ssl.wrap_socket(self.stream_s)
         self.stream_s.settimeout(5)
-        try:
+        with log.bugCheck(log.main, 'Login'):
             self.static_s.send(ujson.dumps(loginRequest).encode(FORMAT))
             status = self.static_s.recv().decode(FORMAT)
             status = ujson.loads(status)
             self.key = status['streamSessionId']
-            logger.info(Fore.GREEN + 'LOGIN : {} \n'.format(status))
-        except:
-            logger.exception(Fore.RED + status['errorDescr'].upper())
+            log.main.success('LOGIN : {} \n'.format(status))
 
     # noinspection PyArgumentList
     def staticDataRequest(self, *args):  #  feed with QuerySets
-        try:
+        with log.bugCheck(log.main, 'static Data Request'):
             for queryset in args:
                 for query in queryset.queries:
-                    request = query['request']
-                    name = query['name']
-                    time.sleep(0.2)
-                    logger.debug(Fore.BLUE + f'request {name} = {request}')
-                    for _ in trange(len(args), bar_format="{l_bar}%s{bar}%s{r_bar}" % (Fore.GREEN, Fore.WHITE),
-                                    desc=Fore.BLUE + f"Downloading {request}"):
-                        self.static_s.send(ujson.dumps(request).encode(FORMAT))
-                        data = self.static_s.recv().decode(FORMAT)
-                        self.static_datas[name] = '' + data
-                        while '\n\n' not in data:
+                    with log.bugCheck(log.main, 'static Data Request'):
+                        request = query['request']
+                        name = query['name']
+                        time.sleep(0.2)
+                        log.dataIO.spc_dbg(f'request {name} = {request}')
+                        for _ in trange(len(args), bar_format="{l_bar}%s{bar}%s{r_bar}" % (Fore.GREEN, Fore.WHITE),
+                                        desc=Fore.BLUE + f"Downloading {request}"):
+                            self.static_s.send(ujson.dumps(request).encode(FORMAT))
                             data = self.static_s.recv().decode(FORMAT)
-                            self.static_datas[name] = self.static_datas[name] + data
-                        self.static_datas[name] = ujson.loads(self.static_datas[name])
-                    if self.static_datas[name]['status'] is False:
-                        logger.info(Fore.RED + f"{name.upper()} : {self.static_datas[name]['status']}")
-                        try:
-                            logger.error(Fore.RED + self.static_datas[name]['errorDescr']\
-                                         + '\n')
-                        except:
-                            logger.exception(Fore.RED + 'Error not listed on API documentation')
-                    else:
-                        logger.info(Fore.GREEN + f"{name.upper()} : {self.static_datas[name]['status']}")
-            filelogger.info([key for key in self.static_datas.keys()])
-        except NameError:
-            logger.exception(Fore.RED + 'invalid argument' + '\n')
+                            self.static_datas[name] = '' + data
+                            while '\n\n' not in data:
+                                data = self.static_s.recv().decode(FORMAT)
+                                self.static_datas[name] = self.static_datas[name] + data
+                            self.static_datas[name] = ujson.loads(self.static_datas[name])
+                        if self.static_datas[name]['status'] is False:
+                            log.dataIO.info(Fore.RED + f"{name.upper()} : {self.static_datas[name]['status']}")
+                            try:
+                                log.dataIO.error(self.static_datas[name]['errorDescr']\
+                                             + '\n')
+                            except:
+                                log.dataIO.exception(Fore.RED + 'Error not listed on API documentation')
+                        else:
+                            log.main.success(f"{name.upper()} : {self.static_datas[name]['status']}")
+            # filelogger.info([key for key in self.static_datas.keys()])
 
     def _streamRecv(self):
         self.is_receiving = True
@@ -271,6 +274,6 @@ if __name__ == '__main__':
     session.stopBalance()
     session.streamListeningStop()
     logger.debug(Fore.BLUE + f'{session.stream_datas}')
-    filelogger.debug(session.stream_datas)
+    # filelogger.debug(session.stream_datas)
 
     pass
