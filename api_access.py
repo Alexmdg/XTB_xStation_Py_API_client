@@ -1,19 +1,8 @@
 import socket, ssl, time, threading, ujson, pandas
-from prelog import CheckLog
-from prelog import LEVELS as poglevel
+
 from tqdm import trange
 from datetime import datetime
 from settings import *
-
-
-log = CheckLog()
-log.main.setLevel(poglevel['1'])
-log.dataIO.setLevel(poglevel['1'])
-log.dataProc.setLevel(poglevel['1'])
-log.display.setLevel(poglevel['1'])
-
-logger=createLogger(__name__)
-logger.setLevel(logging.INFO)
 
 
 ####            QuerySets are named lists of queries (static requests each associated to a name)           ####
@@ -25,14 +14,12 @@ class QuerySet:
     def getUserData(self):
         self.queries.append({'name': f'{self.name}_UserData',
                               'request': getUserDataRequest})
-        log.main.debug(f'{self.queries[-1]}')
-        log.main.info(f"added {self.queries[-1]['name']} to the list of {self.name} queries")
+        log.qset.success(f"added {self.queries[-1]['name']} to the list of {self.name} queries")
 
     def getMarginLevel(self):
         self.queries.append({'name': f'{self.name}_MarginLevel',
                              'request': getMarginLevelRequest})
-        log.main.debug(f'{self.queries[-1]}')
-        log.main.success(f"added {self.queries[-1]['name']} to the list of {self.name} queries")
+        log.qset.success(f"added {self.queries[-1]['name']} to the list of {self.name} queries")
 
     def getMarginTrade(self, *args):
         for query in args:
@@ -42,8 +29,7 @@ class QuerySet:
                                                           'volume': query[1]}
                                         }
                                  })
-            log.main.debug(f'{self.queries[-1]}')
-            log.main.success(f"added {self.queries[-1]['name']} to the list of {self.name} queries")
+            log.qset.success(f"added {self.queries[-1]['name']} to the list of {self.name} queries")
 
     def getCommissionDef(self, *args):
         #   args:list of tuples ('str', int)
@@ -55,20 +41,17 @@ class QuerySet:
                                                           'volume': query[1]}
                                         }
                                  })
-            log.main.debug(f'{self.queries[-1]}')
-            log.main.success(f"added {self.queries[-1]['name']} to the list of {self.name} queries")
+            log.qset.success(f"added {self.queries[-1]['name']} to the list of {self.name} queries")
 
     def getAllSymbols(self):
         self.queries.append({'name': f'{self.name}_AllSymbols',
                               'request': getAllSymbolsRequest})
-        log.main.debug(f'{self.queries[-1]}')
-        log.main.success(f"added {self.queries[-1]['name']} to the list of {self.name} queries")
+        log.qset.success(f"added {self.queries[-1]['name']} to the list of {self.name} queries")
 
     def getCalendar(self):
         self.queries.append({'name': f'{self.name}_Calendar',
                               'request': getCalendarRequest})
-        log.main.debug(f'{self.queries[-1]}')
-        log.main.success(f"added {self.queries[-1]['name']} to the list of {self.name} queries")
+        log.qset.success(f"added {self.queries[-1]['name']} to the list of {self.name} queries")
 
     def getChartRange(self, name, symbols, period, start, end):
         #   args : (str, list of str, int, str(datetime), str(datetime))
@@ -77,8 +60,8 @@ class QuerySet:
         end = datetime.strptime(end, "%Y-%m-%d %H:%M:%S")
         start_ts = datetime.timestamp(start)
         end_ts = datetime.timestamp(end)
-        with log.bugCheck(log.dataProc, 'getChartRange'):
-            log.main.spc_dbg(f'start_ts = {start_ts} -- end_ts = {end_ts}')
+        with log.cbugCheck(log.qset, 'getChartRange'):
+            # log.main.spc_dbg(f'start_ts = {start_ts} -- end_ts = {end_ts}')
             for symbol in symbols:
                 request = {'command': 'getChartRangeRequest',
                             'arguments': {'info': {'start': 1000 * round(start_ts),
@@ -89,8 +72,7 @@ class QuerySet:
                         }
                 self.queries.append({'name': f'{self.name}_{name}_ChartRange_{symbol}',
                                   'request': request})
-                log.main.spc_dbg(f'{self.queries[-1]}')
-                log.main.success(f"added {self.queries[-1]['name']} to the list of {self.name} queries")
+                log.qset.success(f"added {self.queries[-1]['name']} to the list of {self.name} queries")
 
 
 
@@ -112,42 +94,41 @@ class AccessAPI:
         self.stream_s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.stream_s.connect((stream_add, STREAM_PORT))
         self.stream_s = ssl.wrap_socket(self.stream_s)
-        self.stream_s.settimeout(5)
-        with log.bugCheck(log.main, 'Login'):
+        self.stream_s.settimeout(25)
+        with log.cbugCheck(log.static, func_name='Login'):
             self.static_s.send(ujson.dumps(loginRequest).encode(FORMAT))
             status = self.static_s.recv().decode(FORMAT)
             status = ujson.loads(status)
             self.key = status['streamSessionId']
-            log.main.success('LOGIN : {} \n'.format(status))
+            log.static.success('LOGIN : {}'.format(status))
 
     # noinspection PyArgumentList
     def staticDataRequest(self, *args):  #  feed with QuerySets
-        with log.bugCheck(log.main, 'static Data Request'):
+        with log.cbugCheck(log.static, func_name='static Data Request'):
             for queryset in args:
                 for query in queryset.queries:
-                    with log.bugCheck(log.main, 'static Data Request'):
-                        request = query['request']
-                        name = query['name']
-                        time.sleep(0.2)
-                        log.dataIO.spc_dbg(f'request {name} = {request}')
-                        for _ in trange(len(args), bar_format="{l_bar}%s{bar}%s{r_bar}" % (Fore.GREEN, Fore.WHITE),
-                                        desc=Fore.BLUE + f"Downloading {request}"):
-                            self.static_s.send(ujson.dumps(request).encode(FORMAT))
+                    request = query['request']
+                    name = query['name']
+                    time.sleep(0.2)
+                    log.static.spc_dbg(f'request {name} = {request}')
+                    for _ in trange(len(args), bar_format="{l_bar}%s{bar}%s{r_bar}" % (Fore.GREEN, Fore.WHITE),
+                                    desc=Fore.BLUE + "Downloading"):
+                        self.static_s.send(ujson.dumps(request).encode(FORMAT))
+                        data = self.static_s.recv().decode(FORMAT)
+                        self.static_datas[name] = '' + data
+                        while '\n\n' not in data:
                             data = self.static_s.recv().decode(FORMAT)
-                            self.static_datas[name] = '' + data
-                            while '\n\n' not in data:
-                                data = self.static_s.recv().decode(FORMAT)
-                                self.static_datas[name] = self.static_datas[name] + data
-                            self.static_datas[name] = ujson.loads(self.static_datas[name])
-                        if self.static_datas[name]['status'] is False:
-                            log.dataIO.info(Fore.RED + f"{name.upper()} : {self.static_datas[name]['status']}")
-                            try:
-                                log.dataIO.error(self.static_datas[name]['errorDescr']\
-                                             + '\n')
-                            except:
-                                log.dataIO.exception(Fore.RED + 'Error not listed on API documentation')
-                        else:
-                            log.main.success(f"{name.upper()} : {self.static_datas[name]['status']}")
+                            self.static_datas[name] = self.static_datas[name] + data
+                        self.static_datas[name] = ujson.loads(self.static_datas[name])
+                    if self.static_datas[name]['status'] is False:
+                        log.static.info(Fore.RED + f"{name.upper()} : {self.static_datas[name]['status']}")
+                        try:
+                            log.static.error(self.static_datas[name]['errorDescr']\
+                                         + '\n')
+                        except:
+                            log.static.exception(Fore.RED + 'Error not listed on API documentation')
+                    else:
+                        log.static.success(f"{name.upper()} : {self.static_datas[name]['status']}")
             # filelogger.info([key for key in self.static_datas.keys()])
 
     def _streamRecv(self):
@@ -156,21 +137,21 @@ class AccessAPI:
             data = ''
             try: data += self.stream_s.recv().decode(FORMAT)
             except: log.main.exception(Fore.RED + "Error while trying to receive")
-            log.dataIO.cmn_dbg(f'{data["command"]}')
+            log.stream.cmn_dbg(f'{data}')
             try:
                 if data != '':
                     try: data = ujson.loads(data)
-                    except ValueError: logger.debug(Fore.RED + "Datas not JSON readable: " + Fore.YELLOW + f"{data}")
+                    except ValueError: pass#logger.debug(Fore.RED + "Datas not JSON readable: " + Fore.YELLOW + f"{data}")
                     if data['command'] == 'balance':
                         self.stream_datas['balance'].append(data)
-                        log.main.info(Fore.GREEN + f'datas added to stream_datas["balance"] dict')
-                        log.main.debug(Fore.BLUE + f'{data} added to stream_datas dict')
+                        log.stream.info(Fore.GREEN + f'datas added to stream_datas["balance"] dict')
+                        log.stream.debug(Fore.BLUE + f'{data} added to stream_datas dict')
                     elif data['command'] == 'tickPrices':
                         self.stream_datas[f"tickPrices_{data['data']['symbol']}"].append(data['data'])
-                        logger.info(Fore.GREEN+ "datas added to stream_datas['" + f"tickPrices_{data['data']['symbol']}] dict")
-                        logger.debug(Fore.BLUE + f'{data} added to stream_datas dict')
+                        # logger.info(Fore.GREEN+ "datas added to stream_datas['" + f"tickPrices_{data['data']['symbol']}] dict")
+                        # logger.debug(Fore.BLUE + f'{data} added to stream_datas dict')
             except TypeError:
-                log.main.debug(Fore.RED + 'Datas was not JSON but string and has not been saved')
+                log.stream.debug(Fore.RED + 'Datas was not JSON but string and has not been saved')
         self.is_receiving = False
 
     def streamListeningStart(self):
@@ -179,55 +160,53 @@ class AccessAPI:
             self.thread = threading.Thread(target=self._streamRecv)
             self.thread.start()
         except:
-            logger.exception(Fore.RED + f'Exception while trying to open thread')
+            log.stream.exception(Fore.RED + f'Exception while trying to open thread')
 
     def streamListeningStop(self):
         self.is_streaming = False
         self.thread.join()
-        logger.info(Fore.GREEN + 'Listening thread terminated')
+        log.stream.info(Fore.GREEN + 'Listening thread terminated')
 
     def streamTickPrices(self, *symbols):
         for symbol in symbols:
-            with log.bugCheck(log.dataIO):
-                self.stream_datas[f"tickPrices_{symbol}"] = pandas.DataFrame()
-                try:
-                    request = {"command": "getTickPrices",
-                               "streamSessionId": self.key,
-                               "symbol": symbol,
-                               "minArrivalTime": 1500,
-                               "maxLevel": 2}
-                    self.stream_s.send(ujson.dumps(request).encode(FORMAT))
-                    logger.debug(Fore.BLUE + f'Stream request getTickPrices has been sent for symbol {symbol}')
-                except:
-                    logger.exception(Fore.RED + "Couldn't open stream")
+            self.stream_datas[f"tickPrices_{symbol}"] = pandas.DataFrame()
+            try:
+                request = {"command": "getTickPrices",
+                           "streamSessionId": self.key,
+                           "symbol": symbol,
+                           "minArrivalTime": 1500,
+                           "maxLevel": 2}
+                self.stream_s.send(ujson.dumps(request).encode(FORMAT))
+                log.stream.debug(Fore.GREEN + f'Stream request getTickPrices has been sent for symbol {symbol}')
+            except:
+                log.stream.exception(Fore.RED + "Couldn't open stream")
 
     def stopTickPrices(self, symbol):
         try:
             request = {"command": "stopTickPrices",
                        "symbol": symbol}
             self.stream_s.send(ujson.dumps(request).encode(FORMAT))
-            logger.info(Fore.GREEN + f'Stop TickPrices request has been sent for symbol {symbol} ')
+            log.stream.info(Fore.GREEN + f'Stop TickPrices request has been sent for symbol {symbol} ')
         except:
-            logger.exception(Fore.RED + f"Couldn't send stopTickPrices request for symbol {symbol}")
+            log.stream.exception(Fore.RED + f"Couldn't send stopTickPrices request for symbol {symbol}")
 
     def streamBalance(self):
-        with log.bugCheck(log.dataIO):
-            self.stream_datas['balance'] = []
-            try:
-                request = {"command": "getBalance",
-                           "streamSessionId": self.key}
-                self.stream_s.send(ujson.dumps(request).encode(FORMAT))
-                logger.debug(Fore.BLUE + f'Stream request getBalance has been sent')
-            except:
-                logger.exception(Fore.RED + 'Request not sent')
+        self.stream_datas['balance'] = []
+        try:
+            request = {"command": "getBalance",
+                       "streamSessionId": self.key}
+            self.stream_s.send(ujson.dumps(request).encode(FORMAT))
+            log.stream.debug(Fore.GREEN + f'Stream request getBalance has been sent')
+        except:
+            log.stream.exception(Fore.RED + 'Request not sent')
 
     def stopBalance(self):
         try:
             request = {"command": "stopBalance"}
             self.stream_s.send(ujson.dumps(request).encode(FORMAT))
-            logger.info(Fore.GREEN + 'Stop Balance request has been sent')
+            log.stream.info(Fore.GREEN + 'Stop Balance request has been sent')
         except:
-            logger.exception(Fore.RED + f"Couldn't send stopBalance request")
+            log.stream.exception(Fore.RED + f"Couldn't send stopBalance request")
 
 
 
@@ -262,21 +241,23 @@ if __name__ == '__main__':
 
     req.getMarginTrade(*[('EURUSD', 1), ('GBPUSD', 1)])
     req.getUserData()
-    logger.debug(Fore.BLUE + f'requests = {[query for query in req.queries]}')
 
 
     #!# Pass the QuerySet to the API
-    session.staticDataRequest(req)
-    logger.debug(Fore.BLUE + f'datas = {[data for data in session.static_datas.keys()]}')
+    with log.sbugCheck(log.main):
+        with log.timeCheck(session.staticDataRequest, req) as result:
+            log.main.debug(result)
+            # log.main.debug(Fore.BLUE + f'datas = {[data for data in session.static_datas.keys()]}')
+            # session.staticDataRequest(req)
+
 
     #!# Process collected datas
     datasets = static_to_chartdataset(session.static_datas)
-    logger.debug(Fore.BLUE + f'{datasets[0]}')
+    log.main.debug(Fore.BLUE + f'{datasets[0]}')
     time.sleep(10)
     session.stopTickPrices('EURUSD')
     session.stopBalance()
     session.streamListeningStop()
-    logger.debug(Fore.BLUE + f'{session.stream_datas}')
-    # filelogger.debug(session.stream_datas)
+    log.main.debug(Fore.BLUE + f'{session.stream_datas}')
 
     pass
