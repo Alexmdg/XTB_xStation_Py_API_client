@@ -140,18 +140,22 @@ class AccessAPI:
             log.stream.cmn_dbg(f'{data}')
             try:
                 if data != '':
-                    try: data = ujson.loads(data)
-                    except ValueError: pass#logger.debug(Fore.RED + "Datas not JSON readable: " + Fore.YELLOW + f"{data}")
-                    if data['command'] == 'balance':
-                        self.stream_datas['balance'].append(data)
-                        log.stream.info(Fore.GREEN + f'datas added to stream_datas["balance"] dict')
-                        log.stream.debug(Fore.BLUE + f'{data} added to stream_datas dict')
-                    elif data['command'] == 'tickPrices':
-                        self.stream_datas[f"tickPrices_{data['data']['symbol']}"].append(data['data'])
-                        # logger.info(Fore.GREEN+ "datas added to stream_datas['" + f"tickPrices_{data['data']['symbol']}] dict")
-                        # logger.debug(Fore.BLUE + f'{data} added to stream_datas dict')
-            except TypeError:
-                log.stream.debug(Fore.RED + 'Datas was not JSON but string and has not been saved')
+                    try:
+                        data = ujson.loads(data.split('\n\n')[0])
+                        if data['command'] == 'balance':
+                            self.stream_datas['balance'].append(data)
+                            log.stream.info(Fore.GREEN + f'datas added to stream_datas["balance"] dict')
+                            log.stream.debug(Fore.BLUE + f'{data} added to stream_datas dict')
+                        elif data['command'] == 'tickPrices':
+                            self.stream_datas[f"tickPrices_{data['data']['symbol']}"].append(data['data'])
+                            log.stream.info(Fore.GREEN+ "datas added to stream_datas['" + f"tickPrices_{data['data']['symbol']}] dict")
+                            log.stream.debug(Fore.BLUE + f'{data} added to stream_datas dict')
+                    except Exception as e:
+                        log.stream.debug(Fore.RED + f'{e}' + Fore.RESET)
+
+            except Exception as e:
+                log.stream.debug(Fore.RED + f'data = {type(data)} {data}' + Fore.RESET)
+                log.stream.debug(Fore.RED + f'{e}' + Fore.RESET)
         self.is_receiving = False
 
     def streamListeningStart(self):
@@ -169,7 +173,7 @@ class AccessAPI:
 
     def streamTickPrices(self, *symbols):
         for symbol in symbols:
-            self.stream_datas[f"tickPrices_{symbol}"] = pandas.DataFrame()
+            self.stream_datas[f"tickPrices_{symbol}"] = []
             try:
                 request = {"command": "getTickPrices",
                            "streamSessionId": self.key,
@@ -211,6 +215,7 @@ class AccessAPI:
 
 
 
+
 if __name__ == '__main__':
 
 
@@ -223,8 +228,10 @@ if __name__ == '__main__':
 
     #!# Create a stream of data
     session.streamListeningStart()
-    session.streamTickPrices('EURUSD')
     session.streamBalance()
+    time.sleep(2)
+    session.stopBalance()
+    session.streamTickPrices('EURUSD', 'GBPUSD')
 
     #!#Create a QuerySet
     req = QuerySet('first_query')
@@ -247,16 +254,14 @@ if __name__ == '__main__':
     with log.sbugCheck(log.main):
         with log.timeCheck(session.staticDataRequest, req) as result:
             log.main.debug(result)
-            # log.main.debug(Fore.BLUE + f'datas = {[data for data in session.static_datas.keys()]}')
             # session.staticDataRequest(req)
 
 
     #!# Process collected datas
     datasets = static_to_chartdataset(session.static_datas)
     log.main.debug(Fore.BLUE + f'{datasets[0]}')
-    time.sleep(10)
+    time.sleep(120)
     session.stopTickPrices('EURUSD')
-    session.stopBalance()
     session.streamListeningStop()
     log.main.debug(Fore.BLUE + f'{session.stream_datas}')
 
