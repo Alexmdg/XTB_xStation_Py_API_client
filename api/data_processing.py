@@ -1,5 +1,5 @@
 import ujson, pandas
-from settings import *
+from api.settings import *
 
 
 def api_to_json(datas, filename):

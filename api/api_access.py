@@ -2,7 +2,7 @@ import socket, ssl, time, threading, ujson, pandas
 
 from tqdm import trange
 from datetime import datetime
-from settings import *
+from api.settings import *
 
 
 ####            QuerySets are named lists of queries (static requests each associated to a name)           ####
@@ -217,7 +217,7 @@ if __name__ == '__main__':
     #TODO#         Uncomment and modify with your values for a quick first use
 
 
-    from data_processing import static_to_chartdataset
+    from api.data_processing import static_to_chartdataset
     #!# Create an AccessAPI instance to access XTB JSON API
     session = AccessAPI()
 

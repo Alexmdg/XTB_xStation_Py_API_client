@@ -1,5 +1,4 @@
-from api_access import AccessAPI, QuerySet
-from settings import *
+from api.api_access import AccessAPI
 
 
 class ActiveWallet():
