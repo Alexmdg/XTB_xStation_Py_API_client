@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: PyXTB-amdg
-Version: 0.0.2
+Version: 0.0.3
 Summary: python wrapper for xStation json API
 Home-page: https://github.com/Alexmdg/XTB_xStation_Py_API_client
 Author: AlexMDG
