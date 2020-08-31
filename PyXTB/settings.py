@@ -11,6 +11,7 @@ log.main.setLevel(poglevel['1'])
 log.qset.setLevel(poglevel['1'])
 log.static.setLevel(poglevel['1'])
 log.stream.setLevel(poglevel['1'])
+log.dataProc.setLevel(poglevel['1'])
 
 
 ####            Connection infos            ####

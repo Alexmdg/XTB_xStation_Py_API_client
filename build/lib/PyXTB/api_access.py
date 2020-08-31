@@ -93,7 +93,7 @@ class AccessAPI:
         self.stream_s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.stream_s.connect((stream_add, STREAM_PORT))
         self.stream_s = ssl.wrap_socket(self.stream_s)
-        self.stream_s.settimeout(25)
+        self.stream_s.settimeout(3)
         with log.cbugCheck(log.static, func_name='Login'):
             self.static_s.send(ujson.dumps({"command": "login",
                                             "arguments": {"userId": id,
@@ -215,44 +215,44 @@ if __name__ == '__main__':
     #TODO#         Uncomment and modify with your values for a quick first use
 
 
-    from PyXTB.data_processing import static_to_chartdataset
-    #!# Create an AccessAPI instance to access XTB JSON API
-    session = AccessAPI('11360828', 'A00000000')
-
-    #!# Create a stream of data
-    session.streamListeningStart()
-    session.streamBalance()
-    time.sleep(2)
-    session.stopBalance()
-    session.streamTickPrices('EURUSD', 'GBPUSD')
-
-    #!#Create a QuerySet
-    req = QuerySet('first_query')
-
-    #!# Add queries to the QuerySet
-    symbols = ["EURUSD",
-               'OIL.WTI',
-               'GBPUSD'
-               ]
-    req.getChartRange('hist_datas', symbols, 240, '2020-06-10 02:00:00',
-                                                     '2020-07-24 12:00:00')
-    req.getChartRange('short_datas', symbols, 5, '2020-07-18 09:00:00',
-                                                     '2020-07-24 19:00:00')
-
-    req.getMarginTrade(*[('EURUSD', 1), ('GBPUSD', 1)])
-    req.getUserData()
-
-
-    #!# Pass the QuerySet to the API
-    session.staticDataRequest(req)
-
-
-    #!# Process collected datas
-    datasets = static_to_chartdataset(session.static_datas)
-    log.main.debug(Fore.BLUE + f'{datasets[0]}')
-    time.sleep(45)
-    session.stopTickPrices('EURUSD')
-    session.streamListeningStop()
-    log.main.debug(Fore.BLUE + f'{session.stream_datas}')
+    # from PyXTB.data_processing import static_to_chartdataset
+    # #!# Create an AccessAPI instance to access XTB JSON API
+    # session = AccessAPI('11360828', 'A00000000')
+    #
+    # #!# Create a stream of data
+    # session.streamListeningStart()
+    # session.streamBalance()
+    # time.sleep(2)
+    # session.stopBalance()
+    # session.streamTickPrices('EURUSD', 'GBPUSD')
+    #
+    # #!#Create a QuerySet
+    # req = QuerySet('first_query')
+    #
+    # #!# Add queries to the QuerySet
+    # symbols = ["EURUSD",
+    #            'OIL.WTI',
+    #            'GBPUSD'
+    #            ]
+    # req.getChartRange('hist_datas', symbols, 240, '2020-06-10 02:00:00',
+    #                                                  '2020-07-24 12:00:00')
+    # req.getChartRange('short_datas', symbols, 5, '2020-07-18 09:00:00',
+    #                                                  '2020-07-24 19:00:00')
+    #
+    # req.getMarginTrade(*[('EURUSD', 1), ('GBPUSD', 1)])
+    # req.getUserData()
+    #
+    #
+    # #!# Pass the QuerySet to the API
+    # session.staticDataRequest(req)
+    #
+    #
+    # #!# Process collected datas
+    # datasets = static_to_chartdataset(session.static_datas)
+    # log.main.debug(Fore.BLUE + f'{datasets[0]}')
+    # time.sleep(45)
+    # session.stopTickPrices('EURUSD')
+    # session.streamListeningStop()
+    # log.main.debug(Fore.BLUE + f'{session.stream_datas}')
 
     pass

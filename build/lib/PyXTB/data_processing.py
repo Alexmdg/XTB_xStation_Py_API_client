@@ -1,5 +1,5 @@
 import ujson, pandas
-from api.settings import *
+from PyXTB.settings import *
 
 
 def api_to_json(datas, filename):

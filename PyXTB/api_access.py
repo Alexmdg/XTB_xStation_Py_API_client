@@ -93,7 +93,7 @@ class AccessAPI:
         self.stream_s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.stream_s.connect((stream_add, STREAM_PORT))
         self.stream_s = ssl.wrap_socket(self.stream_s)
-        self.stream_s.settimeout(25)
+        self.stream_s.settimeout(3)
         with log.cbugCheck(log.static, func_name='Login'):
             self.static_s.send(ujson.dumps({"command": "login",
                                             "arguments": {"userId": id,
