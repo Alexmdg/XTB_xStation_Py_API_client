@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="PyXTB_amdg", # Replace with your own username
-    version="0.0.1",
+    version="0.0.2",
     author="AlexMDG",
     author_email="alexmdg@protonmail.com",
     description="python wrapper for xStation json API",

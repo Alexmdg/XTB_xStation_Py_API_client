@@ -1,11 +1,11 @@
 README.md
 setup.py
+PyXTB/__init__.py
+PyXTB/api_access.py
+PyXTB/data_processing.py
+PyXTB/settings.py
+PyXTB/trading.py
 PyXTB_amdg.egg-info/PKG-INFO
 PyXTB_amdg.egg-info/SOURCES.txt
 PyXTB_amdg.egg-info/dependency_links.txt
 PyXTB_amdg.egg-info/top_level.txt
-api/__init__.py
-api/api_access.py
-api/data_processing.py
-api/settings.py
-api/trading.py
