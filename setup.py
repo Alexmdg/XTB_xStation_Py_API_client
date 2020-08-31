@@ -4,8 +4,8 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="PyXTB_amdg", # Replace with your own username
-    version="0.0.5",
+    name="PyXTB_amdg",
+    version="0.0.6",
     author="AlexMDG",
     author_email="alexmdg@protonmail.com",
     description="python wrapper for xStation json API",
