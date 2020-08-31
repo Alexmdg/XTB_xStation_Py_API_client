@@ -3,8 +3,8 @@ currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentfram
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0,parentdir)
 
-from api.api_access import QuerySet, AccessAPI
-from api.settings import *
+from PyXTB.api_access import QuerySet, AccessAPI
+from PyXTB.settings import *
 
 
 class TestQuerySet:
@@ -123,7 +123,7 @@ class TestQuerySet:
 
 
 class TestAccessAPI:
-    session = AccessAPI()
+    session = AccessAPI('11389480', 'JsWnL')
     qs = QuerySet('queryset')
     symbols = ["EURUSD",
                'OIL.WTI',

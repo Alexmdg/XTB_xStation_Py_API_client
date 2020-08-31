@@ -73,6 +73,23 @@ class QuerySet:
                                   'request': request})
                 log.qset.success(f"added {self.queries[-1]['name']} to the list of {self.name} queries")
 
+    def getChartLast(self, name, symbols, period, start):
+        #   args : (str, list of str, int, str(datetime), str(datetime))
+        #   Will register a query in the queryset for each symbol of the list.
+        start = datetime.strptime(start, "%Y-%m-%d %H:%M:%S")
+        start_ts = datetime.timestamp(start)
+        with log.cbugCheck(log.qset, 'getChartLast'):
+            for symbol in symbols:
+                request = {'command': 'getChartLastRequest',
+                            'arguments': {'info': {'period': period,
+                                                   'start': 1000 * round(start_ts),
+                                                   'symbol': symbol}
+                                    }
+                        }
+                self.queries.append({'name': f'{self.name}_{name}_ChartLast_{symbol}',
+                                  'request': request})
+                log.qset.success(f"added {self.queries[-1]['name']} to the list of {self.name} queries")
+
 
 
 ####        All communications with the XTB json API happen through an AccessAPI instance         ####
@@ -216,44 +233,46 @@ if __name__ == '__main__':
     #TODO#         Uncomment and modify with your values for a quick first use
 
 
-    # from PyXTB.data_processing import static_to_chartdataset
+    from PyXTB.data_processing import static_to_chartdataset
     # #!# Create an AccessAPI instance to access XTB JSON API
-    # session = AccessAPI('11360828', 'A00000000')
+    session = AccessAPI('11389480', 'JsWnL')
     #
     # #!# Create a stream of data
-    # session.streamListeningStart()
-    # session.streamBalance()
-    # time.sleep(2)
-    # session.stopBalance()
-    # session.streamTickPrices('EURUSD', 'GBPUSD')
+    session.streamListeningStart()
+    session.streamBalance()
+    time.sleep(2)
+    session.stopBalance()
+    session.streamTickPrices('EURUSD', 'GBPUSD')
     #
     # #!#Create a QuerySet
-    # req = QuerySet('first_query')
+    req = QuerySet('first_query')
     #
     # #!# Add queries to the QuerySet
-    # symbols = ["EURUSD",
-    #            'OIL.WTI',
-    #            'GBPUSD'
-    #            ]
-    # req.getChartRange('hist_datas', symbols, 240, '2020-06-10 02:00:00',
-    #                                                  '2020-07-24 12:00:00')
-    # req.getChartRange('short_datas', symbols, 5, '2020-07-18 09:00:00',
-    #                                                  '2020-07-24 19:00:00')
-    #
-    # req.getMarginTrade(*[('EURUSD', 1), ('GBPUSD', 1)])
-    # req.getUserData()
+    symbols = ["EURUSD",
+               'OIL.WTI',
+               'GBPUSD'
+               ]
+    req.getChartRange('hist_datas', symbols, 240, '2020-06-10 02:00:00',
+                                                     '2020-07-24 12:00:00')
+    req.getChartRange('short_datas', symbols, 5, '2020-07-18 09:00:00',
+                                                     '2020-07-24 19:00:00')
+
+    req.getMarginTrade(*[('EURUSD', 1), ('GBPUSD', 1)])
+    req.getUserData()
     #
     #
     # #!# Pass the QuerySet to the API
-    # session.staticDataRequest(req)
+    session.staticDataRequest(req)
     #
     #
     # #!# Process collected datas
-    # datasets = static_to_chartdataset(session.static_datas)
-    # log.main.debug(Fore.BLUE + f'{datasets[0]}')
-    # time.sleep(45)
-    # session.stopTickPrices('EURUSD')
-    # session.streamListeningStop()
-    # log.main.debug(Fore.BLUE + f'{session.stream_datas}')
+    datasets = static_to_chartdataset(session.static_datas)
+    log.main.debug(Fore.BLUE + f'{datasets}')
+    time.sleep(45)
+    session.stopTickPrices('EURUSD')
+    session.stopTickPrices('GBPUSD')
+    session.streamListeningStop()
+    log.main.cmn_dbg(Fore.BLUE + f'{session.stream_datas}')
+    log.main.cmn_dbg(session.static_datas)
 
     pass

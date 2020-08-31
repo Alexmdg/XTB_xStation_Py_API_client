@@ -1,5 +1,6 @@
 from PyXTB.api_access import AccessAPI, QuerySet
 from PyXTB.settings import log
+from PyXTB.data_processing import *
 import time
 
 
@@ -35,8 +36,19 @@ class ActiveWallet():
 
 
 if __name__ == '__main__':
-    trading = ActiveWallet('11360828', 'A00000000')
-    log.main.debug(f'{trading.balance}')
+    trading = ActiveWallet('11389480', 'JsWnL')
+    qs = QuerySet('loadcharts')
+    for symbol in trading.symbols:
+        qs.getChartLast('240mn', [symbol['symbol'] for symbol in trading.symbols if symbol['category'] == 'FX'],
+                         '2020-03-10 02:00:00')
+        qs.getChartLast('30mn', [symbol['symbol'] for symbol in trading.symbols if symbol['category'] == 'FX'],
+                        '2020-03-10 02:00:00')
+
+    trading.session.staticDataRequest(qs)
+    results = static_to_chartdataset(trading.session.static_datas)
+    # for df in results:
+    #     df.to_csv(f'{}')
+
 
 
 
