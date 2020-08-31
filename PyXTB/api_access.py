@@ -135,7 +135,8 @@ class AccessAPI:
         while self.is_streaming is True:
             data = ''
             try: data += self.stream_s.recv().decode(FORMAT)
-            except: log.main.exception(Fore.RED + "Error while trying to receive")
+            except Exception as e:
+                log.stream.cmn_dbg(Fore.RED + f'{e}' + Fore.RESET)
             log.stream.cmn_dbg(f'{data}')
             try:
                 if data != '':

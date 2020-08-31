@@ -16,20 +16,17 @@ class ActiveWallet():
         qs.getUserData()
         qs.getAllSymbols()
         self.session.staticDataRequest(qs)
-        log.dataIO.debug(self.session.static_datas['wallet_init_AllSymbols']['returnData'])
         self.symbols = []
         with log.cbugCheck(log.main):
             for symbol in self.session.static_datas['wallet_init_AllSymbols']['returnData']:
-                log.dataProc.debug(f'{symbol}')
                 self.symbols.append({'symbol': symbol['symbol'],
                                      'currency': symbol['currency'],
                                      'category': symbol['categoryName'],
                                      'pip': symbol['tickValue'],
                                      'lot': symbol['contractSize']
                                  })
-        log.main.cmn_dbg(self.symbols)
-        self.balance = self.session.stream_datas['balance']['data']['balance']
-        self.margin = self.session.stream_datas['balance']['data']['margin']
+        self.balance = self.session.stream_datas['balance'][0]['data']['balance']
+        self.margin = self.session.stream_datas['balance'][0]['data']['margin']
         self.leverage = self.session.static_datas['wallet_init_UserData']['returnData']['leverageMultiplier']
         self.currency = self.session.static_datas['wallet_init_UserData']['returnData']['currency']
 
@@ -37,16 +34,9 @@ class ActiveWallet():
         pass
 
 
-
-
-
-
-
-
-
 if __name__ == '__main__':
     trading = ActiveWallet('11360828', 'A00000000')
-
+    log.main.debug(f'{trading.balance}')
 
 
 
