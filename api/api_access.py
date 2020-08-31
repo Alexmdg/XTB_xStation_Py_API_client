@@ -84,7 +84,7 @@ class AccessAPI:
     is_streaming = False
     is_receiving = False
 
-    def __init__(self):
+    def __init__(self, id, password):
         main_add = socket.getaddrinfo(SERVER, STATIC_PORT)[0][4][0]
         self.static_s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.static_s.connect((main_add, STATIC_PORT))
@@ -95,7 +95,9 @@ class AccessAPI:
         self.stream_s = ssl.wrap_socket(self.stream_s)
         self.stream_s.settimeout(25)
         with log.cbugCheck(log.static, func_name='Login'):
-            self.static_s.send(ujson.dumps(loginRequest).encode(FORMAT))
+            self.static_s.send(ujson.dumps({"command": "login",
+                                            "arguments": {"userId": id,
+                                                         "password": password}}).encode(FORMAT))
             status = self.static_s.recv().decode(FORMAT)
             status = ujson.loads(status)
             self.key = status['streamSessionId']
@@ -215,7 +217,7 @@ if __name__ == '__main__':
 
     # from api.data_processing import static_to_chartdataset
     # #!# Create an AccessAPI instance to access XTB JSON API
-    # session = AccessAPI()
+    # session = AccessAPI('11360828', 'A00000000')
     #
     # #!# Create a stream of data
     # session.streamListeningStart()

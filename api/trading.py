@@ -4,8 +4,8 @@ import time
 
 class ActiveWallet():
 
-    def __init__(self):
-        self.session = AccessAPI()
+    def __init__(self, id, password):
+        self.session = AccessAPI(id, password)
         self.session.streamListeningStart()
         self.session.streamBalance()
         time.sleep(2)
