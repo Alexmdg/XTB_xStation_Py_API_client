@@ -1,4 +1,4 @@
-import socket, ssl, time, threading, ujson, pandas
+import socket, ssl, time, threading, ujson
 
 from tqdm import trange
 from datetime import datetime
@@ -61,7 +61,6 @@ class QuerySet:
         start_ts = datetime.timestamp(start)
         end_ts = datetime.timestamp(end)
         with log.cbugCheck(log.qset, 'getChartRange'):
-            # log.main.spc_dbg(f'start_ts = {start_ts} -- end_ts = {end_ts}')
             for symbol in symbols:
                 request = {'command': 'getChartRangeRequest',
                             'arguments': {'info': {'start': 1000 * round(start_ts),
@@ -102,7 +101,6 @@ class AccessAPI:
             self.key = status['streamSessionId']
             log.static.success('LOGIN : {}'.format(status))
 
-    # noinspection PyArgumentList
     def staticDataRequest(self, *args):  #  feed with QuerySets
         with log.cbugCheck(log.static, func_name='static Data Request'):
             for queryset in args:
@@ -129,7 +127,6 @@ class AccessAPI:
                             log.static.exception(Fore.RED + 'Error not listed on API documentation')
                     else:
                         log.static.success(f"{name.upper()} : {self.static_datas[name]['status']}")
-            # filelogger.info([key for key in self.static_datas.keys()])
 
     def _streamRecv(self):
         self.is_receiving = True
@@ -140,19 +137,13 @@ class AccessAPI:
             log.stream.cmn_dbg(f'{data}')
             try:
                 if data != '':
-                    try:
-                        data = ujson.loads(data.split('\n\n')[0])
-                        if data['command'] == 'balance':
-                            self.stream_datas['balance'].append(data)
-                            log.stream.info(Fore.GREEN + f'datas added to stream_datas["balance"] dict')
-                            log.stream.debug(Fore.BLUE + f'{data} added to stream_datas dict')
-                        elif data['command'] == 'tickPrices':
-                            self.stream_datas[f"tickPrices_{data['data']['symbol']}"].append(data['data'])
-                            log.stream.info(Fore.GREEN+ "datas added to stream_datas['" + f"tickPrices_{data['data']['symbol']}] dict")
-                            log.stream.debug(Fore.BLUE + f'{data} added to stream_datas dict')
-                    except Exception as e:
-                        log.stream.debug(Fore.RED + f'{e}' + Fore.RESET)
-
+                    data = ujson.loads(data.split('\n\n')[0])
+                    if data['command'] == 'balance':
+                        self.stream_datas['balance'].append(data)
+                        log.stream.info(Fore.GREEN + f'datas added to stream_datas["balance"] list')
+                    elif data['command'] == 'tickPrices':
+                        self.stream_datas[f"tickPrices_{data['data']['symbol']}"].append(data['data'])
+                        log.stream.info(Fore.GREEN+ "datas added to stream_datas['" + f"tickPrices_{data['data']['symbol']}] list")
             except Exception as e:
                 log.stream.debug(Fore.RED + f'data = {type(data)} {data}' + Fore.RESET)
                 log.stream.debug(Fore.RED + f'{e}' + Fore.RESET)
@@ -222,47 +213,44 @@ if __name__ == '__main__':
     #TODO#         Uncomment and modify with your values for a quick first use
 
 
-    from api.data_processing import static_to_chartdataset
-    #!# Create an AccessAPI instance to access XTB JSON API
-    session = AccessAPI()
-
-    #!# Create a stream of data
-    session.streamListeningStart()
-    session.streamBalance()
-    time.sleep(2)
-    session.stopBalance()
-    session.streamTickPrices('EURUSD', 'GBPUSD')
-
-    #!#Create a QuerySet
-    req = QuerySet('first_query')
-
-    #!# Add queries to the QuerySet
-    symbols = ["EURUSD",
-               'OIL.WTI',
-               'GBPUSD'
-               ]
-    req.getChartRange('hist_datas', symbols, 240, '2020-06-10 02:00:00',
-                                                     '2020-07-24 12:00:00')
-    req.getChartRange('short_datas', symbols, 5, '2020-07-18 09:00:00',
-                                                     '2020-07-24 19:00:00')
-
-    req.getMarginTrade(*[('EURUSD', 1), ('GBPUSD', 1)])
-    req.getUserData()
-
-
-    #!# Pass the QuerySet to the API
-    with log.sbugCheck(log.main):
-        with log.timeCheck(session.staticDataRequest, req) as result:
-            log.main.debug(result)
-            # session.staticDataRequest(req)
-
-
-    #!# Process collected datas
-    datasets = static_to_chartdataset(session.static_datas)
-    log.main.debug(Fore.BLUE + f'{datasets[0]}')
-    time.sleep(120)
-    session.stopTickPrices('EURUSD')
-    session.streamListeningStop()
-    log.main.debug(Fore.BLUE + f'{session.stream_datas}')
+    # from api.data_processing import static_to_chartdataset
+    # #!# Create an AccessAPI instance to access XTB JSON API
+    # session = AccessAPI()
+    #
+    # #!# Create a stream of data
+    # session.streamListeningStart()
+    # session.streamBalance()
+    # time.sleep(2)
+    # session.stopBalance()
+    # session.streamTickPrices('EURUSD', 'GBPUSD')
+    #
+    # #!#Create a QuerySet
+    # req = QuerySet('first_query')
+    #
+    # #!# Add queries to the QuerySet
+    # symbols = ["EURUSD",
+    #            'OIL.WTI',
+    #            'GBPUSD'
+    #            ]
+    # req.getChartRange('hist_datas', symbols, 240, '2020-06-10 02:00:00',
+    #                                                  '2020-07-24 12:00:00')
+    # req.getChartRange('short_datas', symbols, 5, '2020-07-18 09:00:00',
+    #                                                  '2020-07-24 19:00:00')
+    #
+    # req.getMarginTrade(*[('EURUSD', 1), ('GBPUSD', 1)])
+    # req.getUserData()
+    #
+    #
+    # #!# Pass the QuerySet to the API
+    # session.staticDataRequest(req)
+    #
+    #
+    # #!# Process collected datas
+    # datasets = static_to_chartdataset(session.static_datas)
+    # log.main.debug(Fore.BLUE + f'{datasets[0]}')
+    # time.sleep(45)
+    # session.stopTickPrices('EURUSD')
+    # session.streamListeningStop()
+    # log.main.debug(Fore.BLUE + f'{session.stream_datas}')
 
     pass
